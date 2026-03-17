@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HabitTrack</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="app-header">
+            <h1>HabitTrack</h1>
+            <p class="subtitle">Build consistency one check-in at a time.</p>
+        </header>
+
+        <section id="addHabitForm" class="panel">
+            <input id="habitName" placeholder="Habit name" maxlength="120">
+            <input id="habitDescription" placeholder="Description (optional)" maxlength="240">
+            <button class="btn btn-primary" onclick="addHabit()">Add Habit</button>
+        </section>
+
+        <div id="feedback" class="feedback-message"></div>
+
+        <section id="habitList" class="habit-list"></section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
