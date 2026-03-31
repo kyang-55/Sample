@@ -1,17 +1,18 @@
 :root {
-    --bg-0: #f5f4f8;
-    --bg-1: #ece9f2;
-    --surface: #ffffff;
-    --surface-muted: #f3f1f7;
-    --text: #23212b;
-    --text-muted: #636070;
-    --border: #d4cfdf;
-    --purple-1: #8d7ca8;
-    --purple-2: #6f5f8d;
-    --purple-3: #584a73;
-    --danger: #8a515d;
-    --success: #52746b;
-    --shadow: 0 10px 30px rgba(43, 34, 62, 0.08);
+    --bg-0: #eef2ff;
+    --bg-1: #dfe7ff;
+    --surface: rgba(255, 255, 255, 0.8);
+    --surface-strong: #f9faff;
+    --surface-muted: #eef2ff;
+    --text: #1d2340;
+    --text-muted: #606a90;
+    --border: rgba(92, 110, 182, 0.18);
+    --accent-1: #5d6bff;
+    --accent-2: #7b46ff;
+    --accent-3: #37b3ff;
+    --danger: #c3487c;
+    --success: #248a84;
+    --shadow: 0 22px 60px rgba(65, 75, 148, 0.13);
 }
 
 * {
@@ -23,45 +24,157 @@ body {
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     color: var(--text);
     background:
-        radial-gradient(1200px 500px at -15% -20%, #ded8eb 0%, transparent 70%),
-        radial-gradient(900px 450px at 120% 120%, #ddd7e9 0%, transparent 65%),
+        radial-gradient(1200px 600px at -15% -10%, rgba(118, 143, 255, 0.3) 0%, transparent 70%),
+        radial-gradient(960px 580px at 110% 120%, rgba(142, 96, 255, 0.22) 0%, transparent 68%),
+        radial-gradient(760px 420px at 80% 10%, rgba(76, 200, 255, 0.15) 0%, transparent 60%),
         linear-gradient(160deg, var(--bg-0), var(--bg-1));
     min-height: 100vh;
 }
 
 .app-shell {
-    width: min(960px, 92vw);
-    margin: 40px auto;
+    width: min(1120px, 92vw);
+    margin: 34px auto 56px;
 }
 
-.app-header h1 {
+.brand-mark {
+    display: inline-flex;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.brand-mark__icon {
+    width: auto;
+    height: 72px;
+    display: block;
+    flex: 0 0 auto;
+    max-width: none;
+    filter: drop-shadow(0 16px 28px rgba(91, 79, 196, 0.18));
+}
+
+.brand-mark--dashboard {
     margin: 0;
-    font-size: clamp(2rem, 3vw, 2.8rem);
-    letter-spacing: 0.03em;
+}
+
+.app-hero {
+    position: relative;
+    padding: 28px;
+    border-radius: 28px;
+    border: 1px solid var(--border);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(244, 246, 255, 0.9)),
+        linear-gradient(145deg, rgba(93, 107, 255, 0.08), rgba(123, 70, 255, 0.08));
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+}
+
+.app-header--row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 22px;
+}
+
+.hero-kicker {
+    margin: 0 0 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.74rem;
+    color: #5f54df;
+}
+
+.app-hero__copy {
+    max-width: 620px;
+    padding-top: 92px;
+}
+
+.brand-mark--hero-corner {
+    position: absolute;
+    top: 22px;
+    left: 22px;
 }
 
 .subtitle {
-    margin-top: 8px;
+    margin: 12px 0 0;
     color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.account-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.account-panel--hero {
+    min-width: 280px;
+    padding: 18px;
+    border-radius: 22px;
+    background: rgba(248, 250, 255, 0.78);
+    border: 1px solid var(--border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.account-name {
+    margin: 0;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.account-role {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+.account-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.section-header {
+    margin-top: 28px;
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.section-header--tight {
+    margin-top: 30px;
+}
+
+.section-header h2 {
+    margin: 0;
+    font-size: 1.18rem;
+}
+
+.section-header p {
+    margin: 6px 0 0;
+    color: var(--text-muted);
+    font-size: 0.94rem;
 }
 
 .panel {
-    margin-top: 22px;
+    margin-top: 14px;
     display: grid;
     grid-template-columns: 1.2fr 2fr auto;
-    gap: 10px;
-    padding: 14px;
-    border-radius: 14px;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 22px;
     background: var(--surface);
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
 }
 
 input,
 .btn {
-    border-radius: 10px;
+    border-radius: 14px;
     font-size: 0.95rem;
-    padding: 10px 12px;
+    padding: 12px 14px;
 }
 
 input {
@@ -72,8 +185,8 @@ input {
 }
 
 input:focus {
-    border-color: var(--purple-1);
-    box-shadow: 0 0 0 3px rgba(141, 124, 168, 0.15);
+    border-color: rgba(93, 107, 255, 0.38);
+    box-shadow: 0 0 0 4px rgba(93, 107, 255, 0.14);
 }
 
 .btn {
@@ -93,12 +206,26 @@ input:focus {
 }
 
 .btn-primary {
-    background: var(--purple-2);
-    color: #f8f7fb;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    color: #fdfdff;
 }
 
 .btn-primary:hover {
-    background: var(--purple-3);
+    background: linear-gradient(135deg, #4e5cf0, #6f38f2);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--text);
+    border-color: var(--border);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-secondary:hover {
+    background: #edf1ff;
 }
 
 .habit-list {
@@ -111,19 +238,20 @@ input:focus {
     gap: 12px;
     padding: 14px;
     margin: 10px 0;
-    border-radius: 14px;
+    border-radius: 22px;
     border: 1px solid var(--border);
     background: var(--surface);
     box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
 }
 
 .habit-card--done {
-    border-color: #b8d7cb;
-    background: #f2faf6;
+    border-color: rgba(36, 138, 132, 0.2);
+    background: linear-gradient(135deg, rgba(241, 252, 255, 0.95), rgba(236, 247, 255, 0.92));
 }
 
 .habit-card--done .habit-name {
-    color: #2f6252;
+    color: #1f6e7c;
 }
 
 .habit-top {
@@ -138,7 +266,8 @@ input:focus {
 }
 
 .habit-name {
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 1.02rem;
 }
 
 .habit-description {
@@ -163,13 +292,13 @@ input:focus {
 }
 
 .status-pill--done {
-    background: #e4f1ec;
-    color: #2f6252;
+    background: #e0f8f8;
+    color: #1f6e7c;
 }
 
 .status-pill--pending {
-    background: #f4ebed;
-    color: #7a4752;
+    background: #ece8ff;
+    color: #5c46c6;
 }
 
 .habit-total {
@@ -195,7 +324,7 @@ input:focus {
 .btn-log:hover,
 .btn-edit:hover,
 .btn-delete:hover {
-    background: #ebe7f3;
+    background: #e9efff;
 }
 
 .btn-delete:hover {
@@ -211,8 +340,8 @@ input:focus {
 
 .stat-chip {
     border: 1px solid var(--border);
-    background: var(--surface-muted);
-    border-radius: 10px;
+    background: rgba(246, 248, 255, 0.74);
+    border-radius: 14px;
     padding: 10px;
     display: flex;
     flex-direction: column;
@@ -230,9 +359,9 @@ input:focus {
 
 .habit-calendar {
     border: 1px solid var(--border);
-    border-radius: 10px;
-    background: #faf9fc;
-    padding: 10px;
+    border-radius: 14px;
+    background: rgba(247, 249, 255, 0.78);
+    padding: 12px;
 }
 
 .calendar-title {
@@ -259,8 +388,8 @@ input:focus {
     padding: 5px 0;
     border-radius: 8px;
     font-size: 0.76rem;
-    border: 1px solid #e7e3f0;
-    background: #ffffff;
+    border: 1px solid #d9defd;
+    background: #fbfcff;
 }
 
 .calendar-day--empty {
@@ -268,14 +397,14 @@ input:focus {
 }
 
 .calendar-day--done {
-    background: #dfece7;
-    border-color: #c4ddd3;
-    color: #2d594a;
+    background: #e3f4ff;
+    border-color: #bfe2ff;
+    color: #2d4fa4;
     font-weight: 600;
 }
 
 .calendar-day--today {
-    outline: 2px solid #9a8ab7;
+    outline: 2px solid rgba(123, 70, 255, 0.5);
     outline-offset: -2px;
 }
 
@@ -303,13 +432,101 @@ input:focus {
     color: var(--text-muted);
 }
 
+.admin-panel {
+    margin-top: 20px;
+    padding: 18px;
+    border-radius: 22px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.admin-header h2 {
+    margin: 0;
+}
+
+.admin-table-wrap {
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-table th {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.role-select {
+    border: 1px solid var(--border);
+    background: var(--surface-muted);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 10px;
+}
+
+.hidden {
+    display: none;
+}
+
 @media (max-width: 800px) {
     .app-shell {
-        margin: 24px auto;
+        margin: 18px auto 36px;
+    }
+
+    .app-header--row {
+        flex-direction: column;
+    }
+
+    .app-hero {
+        padding: 22px 20px;
+        border-radius: 24px;
+    }
+
+    .brand-mark--hero-corner {
+        top: 18px;
+        left: 18px;
+    }
+
+    .account-panel {
+        align-items: flex-start;
+    }
+
+    .account-panel--hero {
+        min-width: 100%;
+    }
+
+    .section-header {
+        margin-top: 22px;
     }
 
     .panel {
         grid-template-columns: 1fr;
+        padding: 14px;
+    }
+
+    .admin-header {
+        flex-direction: column;
     }
 
     .habit-top {
@@ -323,5 +540,76 @@ input:focus {
 
     .habit-stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .app-shell {
+        width: min(100%, calc(100vw - 24px));
+    }
+
+    .app-hero {
+        padding: 18px 16px;
+    }
+
+    .brand-mark__icon {
+        width: auto;
+        height: 58px;
+        flex-basis: auto;
+    }
+
+    .app-hero__copy {
+        padding-top: 76px;
+    }
+
+    .brand-mark--hero-corner {
+        top: 14px;
+        left: 14px;
+    }
+
+    .hero-kicker {
+        font-size: 0.68rem;
+        letter-spacing: 0.14em;
+    }
+
+    .subtitle {
+        font-size: 0.95rem;
+    }
+
+    .section-header h2 {
+        font-size: 1.05rem;
+    }
+
+    .section-header p {
+        font-size: 0.9rem;
+    }
+
+    .account-actions {
+        width: 100%;
+    }
+
+    .account-actions .btn {
+        width: 100%;
+    }
+
+    .habit-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .habit-actions {
+        justify-content: stretch;
+    }
+
+    .habit-actions .btn {
+        flex: 1 1 calc(50% - 8px);
+    }
+
+    .calendar-grid {
+        gap: 3px;
+    }
+
+    .calendar-day {
+        font-size: 0.72rem;
+        padding: 6px 0;
     }
 }

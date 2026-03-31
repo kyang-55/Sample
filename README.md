@@ -30,3 +30,24 @@ HabitTrack is a web-based habit tracker built with Node.js, Express, and SQLite.
 
 ```bash
 git clone 
+```
+
+2. Install dependencies and start the app:
+
+```bash
+npm install
+npm start
+```
+
+## Auth Notes
+
+- The first registered account becomes `admin`.
+- Passwords must be at least 8 characters and include at least one letter and one number.
+- `Remember me` creates a longer-lived session.
+- Password reset links are written to `tmp/reset-emails.log` by default.
+
+## Environment Variables
+
+- `NODE_ENV=production`
+- `APP_ORIGIN=http://localhost:3000`
+- `RESET_EMAIL_MODE=file`

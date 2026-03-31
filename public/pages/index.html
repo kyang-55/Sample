@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HabitTrack</title>
+    <link rel="stylesheet" href="../styles/styles.css">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="app-hero app-header--row">
+            <a class="brand-mark brand-mark--dashboard brand-mark--hero-corner" href="./index.html" aria-label="HabitTrack home">
+                <img class="brand-mark__icon" src="../images/logos/logo.png" alt="">
+            </a>
+            <div class="app-hero__copy">
+                <p class="hero-kicker">Personal habit operating system</p>
+                <p class="subtitle">Build consistency one check-in at a time with a cleaner view of your streaks, check-ins, and momentum.</p>
+            </div>
+            <div class="account-panel account-panel--hero">
+                <p id="welcomeMessage" class="account-name"></p>
+                <p id="roleMessage" class="account-role"></p>
+                <div class="account-actions">
+                    <a class="btn btn-secondary" href="./registration.html">New account</a>
+                    <button id="logoutButton" class="btn btn-primary" type="button">Log out</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="section-header">
+            <div>
+                <h2>Plan Your Next Check-In</h2>
+                <p>Create a habit, add context, and keep your rhythm visible.</p>
+            </div>
+        </div>
+        <section id="addHabitForm" class="panel">
+            <input id="habitName" placeholder="Habit name" maxlength="120">
+            <input id="habitDescription" placeholder="Description (optional)" maxlength="240">
+            <button class="btn btn-primary" onclick="addHabit()">Add Habit</button>
+        </section>
+
+        <div id="feedback" class="feedback-message" role="status" aria-live="polite"></div>
+
+        <div class="section-header section-header--tight">
+            <div>
+                <h2>Your Habits</h2>
+                <p>Track what is active, what is slipping, and what is compounding.</p>
+            </div>
+        </div>
+        <section id="habitList" class="habit-list"></section>
+        <section id="adminPanel" class="admin-panel hidden"></section>
+    </main>
+
+    <script src="../scripts/app.js"></script>
+</body>
+</html>

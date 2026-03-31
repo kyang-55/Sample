@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | HabitTrack</title>
+    <link rel="stylesheet" href="../styles/login.css">
+</head>
+<body>
+    <a class="brand-mark" href="./index.html" aria-label="HabitTrack home">
+        <img class="brand-mark__icon" src="../images/logos/logo.png" alt="">
+    </a>
+    <main class="auth-shell">
+        <section class="auth-card">
+            <h1>Create your account</h1>
+            <p class="auth-copy">Start tracking habits with a personal dashboard that belongs only to you.</p>
+
+            <form id="registerForm" class="auth-form">
+                <label class="auth-label" for="name">Name</label>
+                <input id="name" name="name" type="text" autocomplete="name" maxlength="80" required>
+
+                <label class="auth-label" for="email">Email</label>
+                <input id="email" name="email" type="email" autocomplete="email" required>
+
+                <label class="auth-label" for="password">Password</label>
+                <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+                <p class="auth-hint">Use at least 8 characters with a letter and a number.</p>
+
+                <label class="auth-label" for="confirmPassword">Confirm password</label>
+                <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+
+                <label class="auth-checkbox" for="rememberMe">
+                    <input id="rememberMe" name="rememberMe" type="checkbox" checked>
+                    <span>Keep me signed in after registration</span>
+                </label>
+
+                <button class="btn btn-primary" type="submit">Create account</button>
+            </form>
+
+            <p id="feedback" class="auth-feedback" role="status" aria-live="polite"></p>
+            <p class="auth-switch">Already registered? <a href="./login.html">Log in</a></p>
+        </section>
+    </main>
+
+    <script src="../scripts/register.js"></script>
+</body>
+</html>

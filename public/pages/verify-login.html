@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Login | HabitTrack</title>
+    <link rel="stylesheet" href="../styles/login.css">
+</head>
+<body>
+    <a class="brand-mark" href="./index.html" aria-label="HabitTrack home">
+        <img class="brand-mark__icon" src="../images/logos/logo.png" alt="">
+    </a>
+    <main class="auth-shell">
+        <section class="auth-card">
+            <h1>Check your email</h1>
+            <p id="verifyCopy" class="auth-copy">Enter the 6-digit verification code we just sent.</p>
+            <div class="verify-meta">
+                <p id="verifyExpiry" class="verify-pill"></p>
+                <p class="verify-note">Codes expire quickly for safety.</p>
+            </div>
+
+            <form id="verifyLoginForm" class="auth-form">
+                <label class="auth-label" for="code">Verification code</label>
+                <input id="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" required>
+                <button id="verifyButton" class="btn btn-primary" type="submit">Verify and sign in</button>
+            </form>
+
+            <p id="feedback" class="auth-feedback" role="status" aria-live="polite"></p>
+            <div id="deliveryDetails" class="reset-link-container hidden"></div>
+            <div class="auth-actions-inline">
+                <button id="resendButton" class="btn btn-secondary" type="button">Resend code</button>
+                <a class="auth-inline-link" href="./login.html">Back to login</a>
+            </div>
+        </section>
+    </main>
+
+    <script src="../scripts/verify-login.js"></script>
+</body>
+</html>
