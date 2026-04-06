@@ -20,19 +20,20 @@
                 <p id="welcomeMessage" class="account-name"></p>
                 <p id="roleMessage" class="account-role"></p>
                 <div class="account-actions">
-                    <a class="btn btn-secondary" href="./registration.html">New account</a>
-                    <button id="logoutButton" class="btn btn-primary" type="button">Log out</button>
+                    <a id="registerButton" class="btn btn-secondary" href="./registration.html">Register</a>
+                    <a id="loginButton" class="btn btn-secondary" href="./login.html">Login</a>
+                    <button id="logoutButton" class="btn btn-primary hidden" type="button">Logout</button>
                 </div>
             </div>
         </header>
 
-        <div class="section-header">
+        <div id="plannerHeader" class="section-header hidden">
             <div>
                 <h2>Plan Your Next Check-In</h2>
                 <p>Create a habit, add context, and keep your rhythm visible.</p>
             </div>
         </div>
-        <section id="addHabitForm" class="panel">
+        <section id="addHabitForm" class="panel hidden">
             <input id="habitName" placeholder="Habit name" maxlength="120">
             <input id="habitDescription" placeholder="Description (optional)" maxlength="240">
             <button class="btn btn-primary" onclick="addHabit()">Add Habit</button>
@@ -40,13 +41,13 @@
 
         <div id="feedback" class="feedback-message" role="status" aria-live="polite"></div>
 
-        <div class="section-header section-header--tight">
+        <div id="habitsHeader" class="section-header section-header--tight hidden">
             <div>
                 <h2>Your Habits</h2>
                 <p>Track what is active, what is slipping, and what is compounding.</p>
             </div>
         </div>
-        <section id="habitList" class="habit-list"></section>
+        <section id="habitList" class="habit-list hidden"></section>
         <section id="adminPanel" class="admin-panel hidden"></section>
     </main>
 

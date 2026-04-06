@@ -142,12 +142,60 @@ async function authFetch(url, options = {}) {
     return res;
 }
 
-async function ensureAuthenticated() {
-    const res = await authFetch("/auth/me", { method: "GET" });
+function toggleDashboardVisibility(isAuthenticated) {
+    ["plannerHeader", "addHabitForm", "habitsHeader", "habitList"].forEach((id) => {
+        document.getElementById(id)?.classList.toggle("hidden", !isAuthenticated);
+    });
+
+    if (!isAuthenticated) {
+        document.getElementById("adminPanel")?.classList.add("hidden");
+    }
+}
+
+function renderAccountPanel() {
+    const welcomeMessage = document.getElementById("welcomeMessage");
+    const roleMessage = document.getElementById("roleMessage");
+    const registerButton = document.getElementById("registerButton");
+    const loginButton = document.getElementById("loginButton");
+    const logoutButton = document.getElementById("logoutButton");
+
+    if (currentUser) {
+        welcomeMessage.textContent = `Signed in as ${currentUser.name}`;
+        roleMessage.textContent = `Role: ${currentUser.role}`;
+        registerButton.classList.add("hidden");
+        loginButton.classList.add("hidden");
+        logoutButton.classList.remove("hidden");
+        return;
+    }
+
+    welcomeMessage.textContent = "Ready to get started?";
+    roleMessage.textContent = "Register for a new account or log in to manage your habits.";
+    registerButton.classList.remove("hidden");
+    loginButton.classList.remove("hidden");
+    logoutButton.classList.add("hidden");
+}
+
+async function fetchCurrentUser() {
+    const res = await fetch(`${API}/auth/me`, {
+        method: "GET",
+        credentials: "include"
+    });
+
+    if (!res.ok) {
+        currentUser = null;
+        return null;
+    }
+
     const data = await readJson(res);
-    currentUser = data.user;
-    document.getElementById("welcomeMessage").textContent = `Signed in as ${data.user.name}`;
-    document.getElementById("roleMessage").textContent = `Role: ${data.user.role}`;
+    currentUser = data.user || null;
+    return currentUser;
+}
+
+async function ensureAuthenticated() {
+    const user = await fetchCurrentUser();
+    renderAccountPanel();
+    toggleDashboardVisibility(Boolean(user));
+    return user;
 }
 
 async function fetchHabitLogs(habitId) {
@@ -478,14 +526,22 @@ async function logout() {
         credentials: "include"
     });
 
-    window.location.replace("./login.html");
+    currentUser = null;
+    renderAccountPanel();
+    toggleDashboardVisibility(false);
+    showFeedback("You have been logged out.", true);
 }
 
 document.getElementById("logoutButton").addEventListener("click", logout);
 
 async function initializeApp() {
-    await ensureAuthenticated();
+    const user = await ensureAuthenticated();
     showStoredNotice();
+
+    if (!user) {
+        return;
+    }
+
     await Promise.all([loadHabits(), loadAdminPanel()]);
 }
 

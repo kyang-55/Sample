@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap");
+
 :root {
     --bg-0: #eef2ff;
     --bg-1: #dfe7ff;
@@ -21,7 +23,7 @@
 
 body {
     margin: 0;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Lato", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     color: var(--text);
     background:
         radial-gradient(1200px 600px at -15% -10%, rgba(118, 143, 255, 0.3) 0%, transparent 70%),
@@ -70,7 +72,7 @@ body {
 .app-header--row {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: flex-end;
     gap: 22px;
 }
 
@@ -83,6 +85,7 @@ body {
 }
 
 .app-hero__copy {
+    flex: 1 1 auto;
     max-width: 620px;
     padding-top: 92px;
 }
@@ -104,14 +107,18 @@ body {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 6px;
 }
 
 .account-panel--hero {
-    min-width: 280px;
-    padding: 18px;
-    border-radius: 22px;
-    background: rgba(248, 250, 255, 0.78);
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 240px;
+    margin-bottom: 2px;
+    padding: 10px 12px;
+    border-radius: 18px;
+    background: rgba(248, 250, 255, 0.9);
     border: 1px solid var(--border);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
 }
@@ -120,18 +127,25 @@ body {
     margin: 0;
     color: var(--text);
     font-weight: 600;
+    font-size: 0.94rem;
 }
 
 .account-role {
     margin: 0;
     color: var(--text-muted);
-    font-size: 0.88rem;
+    font-size: 0.8rem;
 }
 
 .account-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
+    width: auto;
+}
+
+.account-actions .btn {
+    padding: 9px 12px;
+    font-size: 0.88rem;
 }
 
 .section-header {
@@ -496,6 +510,7 @@ input:focus {
 
     .app-header--row {
         flex-direction: column;
+        align-items: flex-start;
     }
 
     .app-hero {
@@ -514,6 +529,8 @@ input:focus {
 
     .account-panel--hero {
         min-width: 100%;
+        max-width: none;
+        margin-bottom: 0;
     }
 
     .section-header {
@@ -590,6 +607,7 @@ input:focus {
 
     .account-actions .btn {
         width: 100%;
+        flex: 1 1 100%;
     }
 
     .habit-stats {

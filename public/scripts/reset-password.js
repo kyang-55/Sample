@@ -13,6 +13,19 @@ function showFeedback(message) {
     document.getElementById("feedback").textContent = message;
 }
 
+const resetPasswordForm = document.getElementById("resetPasswordForm");
+const passwordMeter = window.HabitTrackAuthUI?.attachPasswordMeter({
+    passwordInputId: "password",
+    confirmInputId: "confirmPassword",
+    meterId: "passwordMeter",
+    strengthLabelId: "passwordStrengthLabel",
+    descriptionId: "passwordDescription",
+    requirementsId: "passwordRequirements",
+    matchHintId: "passwordMatchHint"
+});
+
+window.HabitTrackAuthUI?.enableBrowserNotifications(resetPasswordForm);
+
 function seedTokenFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
@@ -21,7 +34,7 @@ function seedTokenFromUrl() {
     }
 }
 
-document.getElementById("resetPasswordForm").addEventListener("submit", async (event) => {
+resetPasswordForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     showFeedback("");
 
@@ -29,8 +42,24 @@ document.getElementById("resetPasswordForm").addEventListener("submit", async (e
     const password = document.getElementById("password").value;
     const confirmPassword = document.getElementById("confirmPassword").value;
 
+    if (!passwordMeter?.isValid()) {
+        const guidance = "Password must be at least 8 characters and include at least one letter and one number.";
+        showFeedback(guidance);
+        await window.HabitTrackAuthUI?.notifyAuthEvent(
+            "New password is too weak",
+            guidance,
+            "habittrack-reset-password-invalid"
+        );
+        return;
+    }
+
     if (password !== confirmPassword) {
         showFeedback("Passwords do not match.");
+        await window.HabitTrackAuthUI?.notifyAuthEvent(
+            "Password confirmation failed",
+            "The new password and confirmation field do not match yet.",
+            "habittrack-reset-password-mismatch"
+        );
         return;
     }
 
@@ -45,6 +74,11 @@ document.getElementById("resetPasswordForm").addEventListener("submit", async (e
 
     if (!res.ok) {
         showFeedback(data.error || "Unable to reset password.");
+        await window.HabitTrackAuthUI?.notifyAuthEvent(
+            "Password reset failed",
+            data.error || "Unable to reset password. Check the token and password requirements, then try again.",
+            "habittrack-reset-password-failed"
+        );
         return;
     }
 

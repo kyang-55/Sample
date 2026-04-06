@@ -19,6 +19,9 @@ function setSubmitting(isSubmitting) {
     button.textContent = isSubmitting ? "Sending code..." : "Continue";
 }
 
+const loginForm = document.getElementById("loginForm");
+window.HabitTrackAuthUI?.enableBrowserNotifications(loginForm);
+
 async function redirectIfAuthenticated() {
     try {
         const res = await fetch(`${API}/auth/me`, { credentials: "include" });
@@ -30,7 +33,7 @@ async function redirectIfAuthenticated() {
     }
 }
 
-document.getElementById("loginForm").addEventListener("submit", async (event) => {
+loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     showFeedback("");
     setSubmitting(true);
@@ -50,6 +53,11 @@ document.getElementById("loginForm").addEventListener("submit", async (event) =>
 
     if (!res.ok) {
         showFeedback(data.error || "Unable to log in.");
+        await window.HabitTrackAuthUI?.notifyAuthEvent(
+            "Login failed",
+            data.error || "Your email or password was not accepted. Check your credentials and try again.",
+            "habittrack-login-failed"
+        );
         setSubmitting(false);
         return;
     }

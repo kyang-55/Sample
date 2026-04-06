@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap");
+
 :root {
     --bg-0: #eef2ff;
     --bg-1: #dfe5ff;
@@ -19,7 +21,7 @@
 body {
     margin: 0;
     min-height: 100vh;
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: "Lato", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     color: var(--text);
     background:
         radial-gradient(700px 420px at 0% 0%, rgba(110, 140, 255, 0.4) 0%, transparent 65%),
@@ -141,6 +143,85 @@ h1 {
     margin: -4px 0 2px;
     color: var(--muted);
     font-size: 0.88rem;
+}
+
+.auth-hint--match {
+    min-height: 18px;
+}
+
+.auth-hint--match.is-valid {
+    color: #22795a;
+}
+
+.auth-hint--match.is-invalid {
+    color: var(--danger);
+}
+
+.password-meter {
+    margin: -2px 0 8px;
+    padding: 14px;
+    border-radius: 16px;
+    background: rgba(246, 248, 255, 0.84);
+    border: 1px solid rgba(93, 107, 255, 0.12);
+}
+
+.password-meter__bar-track {
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(93, 107, 255, 0.12);
+    overflow: hidden;
+}
+
+.password-meter__bar {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: #c95757;
+    transition: width 160ms ease, background-color 160ms ease;
+}
+
+.password-meter__summary {
+    margin: 10px 0 6px;
+    font-size: 0.92rem;
+}
+
+.password-meter[data-strength="fair"] .password-meter__bar {
+    background: #d9a441;
+}
+
+.password-meter[data-strength="good"] .password-meter__bar {
+    background: #4d92d8;
+}
+
+.password-meter[data-strength="strong"] .password-meter__bar {
+    background: #2b8f66;
+}
+
+.password-checklist {
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+.password-checklist__item::before {
+    content: "○";
+    margin-right: 8px;
+}
+
+.password-checklist__item.is-met {
+    color: var(--text);
+}
+
+.password-checklist__item.is-met::before {
+    content: "✓";
+}
+
+.password-checklist__item.is-optional:not(.is-met) {
+    opacity: 0.85;
 }
 
 input,

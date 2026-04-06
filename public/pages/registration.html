@@ -24,10 +24,18 @@
 
                 <label class="auth-label" for="password">Password</label>
                 <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required>
-                <p class="auth-hint">Use at least 8 characters with a letter and a number.</p>
+                <div id="passwordMeter" class="password-meter" data-strength="empty" aria-live="polite">
+                    <div class="password-meter__bar-track">
+                        <div class="password-meter__bar" data-password-meter-bar></div>
+                    </div>
+                    <p class="password-meter__summary">Strength: <strong id="passwordStrengthLabel">No password yet</strong></p>
+                    <p id="passwordDescription" class="auth-hint">Choose a password with at least 8 characters, including a letter and a number.</p>
+                    <ul id="passwordRequirements" class="password-checklist"></ul>
+                </div>
 
                 <label class="auth-label" for="confirmPassword">Confirm password</label>
                 <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+                <p id="passwordMatchHint" class="auth-hint auth-hint--match"></p>
 
                 <label class="auth-checkbox" for="rememberMe">
                     <input id="rememberMe" name="rememberMe" type="checkbox" checked>
@@ -42,6 +50,7 @@
         </section>
     </main>
 
+    <script src="../scripts/auth-ui.js"></script>
     <script src="../scripts/register.js"></script>
 </body>
 </html>

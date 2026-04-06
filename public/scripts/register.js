@@ -13,6 +13,19 @@ function showFeedback(message) {
     document.getElementById("feedback").textContent = message;
 }
 
+const registerForm = document.getElementById("registerForm");
+const passwordMeter = window.HabitTrackAuthUI?.attachPasswordMeter({
+    passwordInputId: "password",
+    confirmInputId: "confirmPassword",
+    meterId: "passwordMeter",
+    strengthLabelId: "passwordStrengthLabel",
+    descriptionId: "passwordDescription",
+    requirementsId: "passwordRequirements",
+    matchHintId: "passwordMatchHint"
+});
+
+window.HabitTrackAuthUI?.enableBrowserNotifications(registerForm);
+
 async function redirectIfAuthenticated() {
     try {
         const res = await fetch(`${API}/auth/me`, { credentials: "include" });
@@ -24,7 +37,7 @@ async function redirectIfAuthenticated() {
     }
 }
 
-document.getElementById("registerForm").addEventListener("submit", async (event) => {
+registerForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     showFeedback("");
 
@@ -34,8 +47,24 @@ document.getElementById("registerForm").addEventListener("submit", async (event)
     const confirmPassword = document.getElementById("confirmPassword").value;
     const rememberMe = document.getElementById("rememberMe").checked;
 
+    if (!passwordMeter?.isValid()) {
+        const guidance = "Password must be at least 8 characters and include at least one letter and one number.";
+        showFeedback(guidance);
+        await window.HabitTrackAuthUI?.notifyAuthEvent(
+            "Password requirements not met",
+            guidance,
+            "habittrack-password-invalid"
+        );
+        return;
+    }
+
     if (password !== confirmPassword) {
         showFeedback("Passwords do not match.");
+        await window.HabitTrackAuthUI?.notifyAuthEvent(
+            "Password confirmation failed",
+            "The password and confirmation field do not match yet.",
+            "habittrack-password-mismatch"
+        );
         return;
     }
 
@@ -50,6 +79,11 @@ document.getElementById("registerForm").addEventListener("submit", async (event)
 
     if (!res.ok) {
         showFeedback(data.error || "Unable to create account.");
+        await window.HabitTrackAuthUI?.notifyAuthEvent(
+            "Registration blocked",
+            data.error || "Unable to create account. Check the password requirements and try again.",
+            "habittrack-register-failed"
+        );
         return;
     }
 
