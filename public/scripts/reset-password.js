@@ -1,4 +1,12 @@
-const API = "";
+const LOCAL_SERVER_ORIGIN = "http://localhost:3000";
+const useLocalServer = window.location.protocol === "file:"
+    || (
+        ["localhost", "127.0.0.1"].includes(window.location.hostname)
+        && window.location.port
+        && window.location.port !== "3000"
+    );
+const API = useLocalServer ? LOCAL_SERVER_ORIGIN : "";
+const PAGE_BASE = useLocalServer ? `${LOCAL_SERVER_ORIGIN}/pages` : ".";
 
 async function readJson(res) {
     const text = await res.text();
@@ -83,7 +91,7 @@ resetPasswordForm.addEventListener("submit", async (event) => {
     }
 
     sessionStorage.setItem("habittrack_notice", "Password updated. Please log in with your new password.");
-    window.location.replace("./login.html");
+    window.location.replace(`${PAGE_BASE}/login.html`);
 });
 
 seedTokenFromUrl();

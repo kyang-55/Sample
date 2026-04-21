@@ -1,4 +1,12 @@
-const API = "";
+const LOCAL_SERVER_ORIGIN = "http://localhost:3000";
+const useLocalServer = window.location.protocol === "file:"
+    || (
+        ["localhost", "127.0.0.1"].includes(window.location.hostname)
+        && window.location.port
+        && window.location.port !== "3000"
+    );
+const API = useLocalServer ? LOCAL_SERVER_ORIGIN : "";
+const PAGE_BASE = useLocalServer ? `${LOCAL_SERVER_ORIGIN}/pages` : ".";
 let countdownInterval = null;
 
 async function readJson(res) {
@@ -94,12 +102,16 @@ function renderDeliveryDetails(challenge) {
         return;
     }
 
-    details.classList.remove("hidden");
-    details.innerHTML = `
-        <p class="reset-link-copy">Verification delivery: ${challenge.delivery.delivery || "unknown"}</p>
-        ${challenge.delivery.outboxPath ? `<p class="reset-link-copy">Outbox: ${challenge.delivery.outboxPath}</p>` : ""}
-        ${challenge.delivery.preview ? `<a href="${challenge.delivery.preview}">${challenge.delivery.preview}</a>` : ""}
-    `;
+    if (challenge.delivery.delivery === "file") {
+        details.classList.remove("hidden");
+        details.innerHTML = `
+            <p class="reset-link-copy">A verification code was sent for local testing.</p>
+        `;
+        return;
+    }
+
+    details.classList.add("hidden");
+    details.innerHTML = "";
 }
 
 function seedChallengeFromState() {
@@ -108,7 +120,7 @@ function seedChallengeFromState() {
     const challenge = getStoredChallenge();
 
     if (!challenge || !challengeId || challenge.challengeId !== challengeId) {
-        window.location.replace("./login.html");
+        window.location.replace(`${PAGE_BASE}/login.html`);
         return null;
     }
 
@@ -126,7 +138,7 @@ document.getElementById("verifyLoginForm").addEventListener("submit", async (eve
 
     const challenge = getStoredChallenge();
     if (!challenge?.challengeId) {
-        window.location.replace("./login.html");
+        window.location.replace(`${PAGE_BASE}/login.html`);
         return;
     }
 
@@ -152,7 +164,7 @@ document.getElementById("verifyLoginForm").addEventListener("submit", async (eve
     }
 
     clearStoredChallenge();
-    window.location.replace("./index.html");
+    window.location.replace(`${PAGE_BASE}/index.html`);
 });
 
 document.getElementById("resendButton").addEventListener("click", async () => {
@@ -161,7 +173,7 @@ document.getElementById("resendButton").addEventListener("click", async () => {
 
     const challenge = getStoredChallenge();
     if (!challenge?.challengeId) {
-        window.location.replace("./login.html");
+        window.location.replace(`${PAGE_BASE}/login.html`);
         return;
     }
 
@@ -188,7 +200,7 @@ document.getElementById("resendButton").addEventListener("click", async () => {
     };
 
     setStoredChallenge(updatedChallenge);
-    const nextUrl = `./verify-login.html?challenge=${encodeURIComponent(updatedChallenge.challengeId)}`;
+    const nextUrl = `${PAGE_BASE}/verify-login.html?challenge=${encodeURIComponent(updatedChallenge.challengeId)}`;
     history.replaceState(null, "", nextUrl);
     document.getElementById("verifyCopy").textContent = `Enter the 6-digit verification code sent to ${maskEmail(updatedChallenge.email)}.`;
     renderDeliveryDetails(updatedChallenge);

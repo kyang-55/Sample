@@ -1,10 +1,13 @@
 {
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "node tests/run-tests.js"
   },
   "dependencies": {
     "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
     "express": "^5.2.1",
+    "resend": "^6.10.0",
     "sqlite3": "^6.0.1"
   }
 }

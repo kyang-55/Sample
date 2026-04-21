@@ -1,4 +1,12 @@
-const API = "";
+const LOCAL_SERVER_ORIGIN = "http://localhost:3000";
+const useLocalServer = window.location.protocol === "file:"
+    || (
+        ["localhost", "127.0.0.1"].includes(window.location.hostname)
+        && window.location.port
+        && window.location.port !== "3000"
+    );
+const API = useLocalServer ? LOCAL_SERVER_ORIGIN : "";
+const PAGE_BASE = useLocalServer ? `${LOCAL_SERVER_ORIGIN}/pages` : ".";
 
 async function readJson(res) {
     const text = await res.text();
@@ -26,7 +34,7 @@ async function redirectIfAuthenticated() {
     try {
         const res = await fetch(`${API}/auth/me`, { credentials: "include" });
         if (res.ok) {
-            window.location.replace("./index.html");
+            window.location.replace(`${PAGE_BASE}/index.html`);
         }
     } catch {
         // Keep the user on the login page if the server is unavailable.
@@ -73,12 +81,12 @@ loginForm.addEventListener("submit", async (event) => {
             })
         );
 
-        const nextUrl = `./verify-login.html?challenge=${encodeURIComponent(data.challengeId)}`;
+        const nextUrl = `${PAGE_BASE}/verify-login.html?challenge=${encodeURIComponent(data.challengeId)}`;
         window.location.replace(nextUrl);
         return;
     }
 
-    window.location.replace("./index.html");
+    window.location.replace(`${PAGE_BASE}/index.html`);
 });
 
 redirectIfAuthenticated();

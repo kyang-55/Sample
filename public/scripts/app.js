@@ -1,4 +1,6 @@
-const API = "";
+const API = window.location.protocol === "file:"
+    ? "http://localhost:3000"
+    : "";
 let currentUser = null;
 
 function escapeHtml(value) {

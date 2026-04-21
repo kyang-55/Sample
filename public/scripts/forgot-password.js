@@ -1,4 +1,11 @@
-const API = "";
+const LOCAL_SERVER_ORIGIN = "http://localhost:3000";
+const useLocalServer = window.location.protocol === "file:"
+    || (
+        ["localhost", "127.0.0.1"].includes(window.location.hostname)
+        && window.location.port
+        && window.location.port !== "3000"
+    );
+const API = useLocalServer ? LOCAL_SERVER_ORIGIN : "";
 
 async function readJson(res) {
     const text = await res.text();
@@ -23,28 +30,33 @@ document.getElementById("forgotPasswordForm").addEventListener("submit", async (
 
     const email = document.getElementById("email").value.trim();
 
-    const res = await fetch(`${API}/auth/request-password-reset`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email })
-    });
+    try {
+        const res = await fetch(`${API}/auth/request-password-reset`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ email })
+        });
 
-    const data = await readJson(res);
+        const data = await readJson(res);
 
-    if (!res.ok) {
-        showFeedback(data.error || "Unable to create reset link.");
-        return;
-    }
+        if (!res.ok) {
+            showFeedback(data.error || "Unable to send reset email.");
+            return;
+        }
 
-    showFeedback(data.message || "Reset link created.");
+        showFeedback(data.message || "If that email exists, a password reset email has been sent.");
 
-    if (data.resetUrl) {
-        container.classList.remove("hidden");
-        container.innerHTML = `
-            <p class="reset-link-copy">Reset delivery: ${data.delivery?.delivery || "unknown"}</p>
-            ${data.delivery?.outboxPath ? `<p class="reset-link-copy">Outbox: ${data.delivery.outboxPath}</p>` : ""}
-            <a href="${data.resetUrl}">${data.resetUrl}</a>
-        `;
+        if (data.resetUrl) {
+            container.classList.remove("hidden");
+            container.innerHTML = `
+                <p class="reset-link-copy">A password reset email has been sent. Check your inbox for the reset link.</p>
+            `;
+        }
+    } catch {
+        const message = API
+            ? `Could not reach the HabitTrack server at ${API}. Start it with npm start and try again.`
+            : "Could not reach the HabitTrack server. Start it with npm start and try again.";
+        showFeedback(message);
     }
 });

@@ -51,3 +51,26 @@ npm start
 - `NODE_ENV=production`
 - `APP_ORIGIN=http://localhost:3000`
 - `RESET_EMAIL_MODE=file`
+- `RESEND_API_KEY=your_resend_api_key`
+- `RESEND_FROM_EMAIL=onboarding@resend.dev`
+
+## Real Email Delivery With Resend
+
+HabitTrack can now send password reset links and login verification codes through Resend.
+
+1. Create a free Resend account and generate an API key.
+2. Create a local `.env` file in the project root.
+3. Add:
+
+```bash
+RESET_EMAIL_MODE=resend
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM_EMAIL=onboarding@resend.dev
+APP_ORIGIN=http://localhost:3000
+```
+
+4. Restart the server with `npm start`.
+
+Notes:
+- `onboarding@resend.dev` is convenient for initial testing, but sending to broader real users usually requires a verified domain in Resend.
+- If `RESET_EMAIL_MODE` stays as `file`, the app continues using the local outbox log instead of sending real email.

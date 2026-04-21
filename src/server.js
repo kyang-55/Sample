@@ -1,7 +1,11 @@
+require("dotenv").config();
+
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const cors = require("cors");
 const express = require("express");
+const { Resend } = require("resend");
 const db = require("./db/database");
 
 const app = express();
@@ -16,7 +20,43 @@ const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const APP_ORIGIN = process.env.APP_ORIGIN || `http://localhost:${PORT}`;
 const RESET_EMAIL_MODE = process.env.RESET_EMAIL_MODE || "file";
 const RESET_OUTBOX_PATH = path.join(__dirname, "..", "tmp", "reset-emails.log");
+const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+function isAllowedOrigin(origin) {
+    if (!origin || origin === "null") {
+        return true;
+    }
 
+    if (origin === APP_ORIGIN || origin === `http://localhost:${PORT}` || origin === `http://127.0.0.1:${PORT}`) {
+        return true;
+    }
+
+    if (origin.startsWith("vscode-webview://")) {
+        return true;
+    }
+
+    try {
+        const parsed = new URL(origin);
+        return ["http:", "https:"].includes(parsed.protocol)
+            && ["localhost", "127.0.0.1"].includes(parsed.hostname);
+    } catch {
+        return false;
+    }
+}
+
+app.use(cors({
+    origin(origin, callback) {
+        if (isAllowedOrigin(origin)) {
+            callback(null, true);
+            return;
+        }
+
+        console.error(`Blocked CORS origin: ${origin}`);
+        callback(new Error("Origin not allowed by HabitTrack CORS policy."));
+    },
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "..", "public")));
 
@@ -136,12 +176,59 @@ function ensureOutboxDir() {
     fs.mkdirSync(path.dirname(RESET_OUTBOX_PATH), { recursive: true });
 }
 
-function deliverResetEmail(email, resetUrl, expiresAt) {
-    if (RESET_EMAIL_MODE !== "file") {
-        return {
-            delivery: RESET_EMAIL_MODE,
-            preview: resetUrl
-        };
+async function sendEmailWithResend({ to, subject, html, text }) {
+    if (!resend) {
+        throw new Error("RESEND_API_KEY is not configured.");
+    }
+
+    const result = await resend.emails.send({
+        from: RESEND_FROM_EMAIL,
+        to,
+        subject,
+        html,
+        text
+    });
+
+    if (result?.error) {
+        throw new Error(result.error.message || "Resend email delivery failed.");
+    }
+
+    return {
+        delivery: "resend",
+        emailId: result.data?.id || null
+    };
+}
+
+function buildEmailDeliveryErrorMessage(error, fallbackMessage) {
+    const detail = String(error?.message || "").trim();
+    if (!detail) {
+        return fallbackMessage;
+    }
+
+    return `${fallbackMessage} ${detail}`;
+}
+
+async function deliverResetEmail(email, resetUrl, expiresAt) {
+    if (RESET_EMAIL_MODE === "resend") {
+        const subject = "HabitTrack password reset";
+        const text = [
+            "Use the link below to reset your HabitTrack password.",
+            "",
+            `Reset URL: ${resetUrl}`,
+            `Expires At: ${expiresAt}`
+        ].join("\n");
+        const html = `
+            <p>Use the link below to reset your HabitTrack password.</p>
+            <p><a href="${resetUrl}">${resetUrl}</a></p>
+            <p>Expires at: ${expiresAt}</p>
+        `;
+
+        return sendEmailWithResend({
+            to: email,
+            subject,
+            html,
+            text
+        });
     }
 
     ensureOutboxDir();
@@ -163,12 +250,29 @@ function deliverResetEmail(email, resetUrl, expiresAt) {
     };
 }
 
-function deliverLoginCodeEmail(email, code, verifyUrl, expiresAt) {
-    if (RESET_EMAIL_MODE !== "file") {
-        return {
-            delivery: RESET_EMAIL_MODE,
-            preview: verifyUrl
-        };
+async function deliverLoginCodeEmail(email, code, verifyUrl, expiresAt) {
+    if (RESET_EMAIL_MODE === "resend") {
+        const subject = "HabitTrack login verification code";
+        const text = [
+            "Use this code to finish signing in to HabitTrack.",
+            "",
+            `Verification Code: ${code}`,
+            `Verify URL: ${verifyUrl}`,
+            `Expires At: ${expiresAt}`
+        ].join("\n");
+        const html = `
+            <p>Use this code to finish signing in to HabitTrack.</p>
+            <p><strong>${code}</strong></p>
+            <p>You can also continue here: <a href="${verifyUrl}">${verifyUrl}</a></p>
+            <p>Expires at: ${expiresAt}</p>
+        `;
+
+        return sendEmailWithResend({
+            to: email,
+            subject,
+            html,
+            text
+        });
     }
 
     ensureOutboxDir();
@@ -356,7 +460,7 @@ async function createLoginVerificationChallenge(user, rememberMe) {
     );
 
     const verifyUrl = buildLoginVerifyUrl(challengeId);
-    const delivery = deliverLoginCodeEmail(user.email, code, verifyUrl, expiresAt);
+    const delivery = await deliverLoginCodeEmail(user.email, code, verifyUrl, expiresAt);
 
     return {
         challengeId,
@@ -458,7 +562,18 @@ app.post("/auth/login", async (req, res) => {
             return res.status(401).json({ error: "Invalid email or password." });
         }
 
-        const challenge = await createLoginVerificationChallenge(user, rememberMe);
+        let challenge;
+        try {
+            challenge = await createLoginVerificationChallenge(user, rememberMe);
+        } catch (error) {
+            console.error("Unable to send login verification email:", error.message);
+            return res.status(502).json({
+                error: buildEmailDeliveryErrorMessage(
+                    error,
+                    "Your password was accepted, but we could not send the verification email."
+                )
+            });
+        }
 
         return res.json({
             message: "Verification code sent.",
@@ -469,6 +584,7 @@ app.post("/auth/login", async (req, res) => {
             delivery: challenge.delivery
         });
     } catch (error) {
+        console.error("Unable to log in:", error.message);
         return res.status(500).json({ error: "Unable to log in." });
     }
 });
@@ -567,7 +683,18 @@ app.post("/auth/resend-login-code", async (req, res) => {
             return res.status(400).json({ error: "User no longer exists." });
         }
 
-        const challenge = await createLoginVerificationChallenge(user, Boolean(existingChallenge.remember_me));
+        let challenge;
+        try {
+            challenge = await createLoginVerificationChallenge(user, Boolean(existingChallenge.remember_me));
+        } catch (error) {
+            console.error("Unable to resend login verification email:", error.message);
+            return res.status(502).json({
+                error: buildEmailDeliveryErrorMessage(
+                    error,
+                    "We could not send a new verification email."
+                )
+            });
+        }
 
         return res.json({
             message: "A new verification code was sent.",
@@ -577,6 +704,7 @@ app.post("/auth/resend-login-code", async (req, res) => {
             delivery: challenge.delivery
         });
     } catch (error) {
+        console.error("Unable to resend verification code:", error.message);
         return res.status(500).json({ error: "Unable to resend verification code." });
     }
 });
@@ -595,7 +723,7 @@ app.post("/auth/request-password-reset", async (req, res) => {
 
         if (!user) {
             return res.json({
-                message: "If that email exists, a reset link has been created."
+                message: "If that email exists, a password reset email has been sent."
             });
         }
 
@@ -613,16 +741,19 @@ app.post("/auth/request-password-reset", async (req, res) => {
         );
 
         const resetUrl = buildResetUrl(token);
-        const delivery = deliverResetEmail(email, resetUrl, expiresAt);
+        const delivery = await deliverResetEmail(email, resetUrl, expiresAt);
 
         return res.json({
-            message: "Reset link created.",
+            message: "If that email exists, a password reset email has been sent.",
             resetUrl: delivery.preview,
             expiresAt,
             delivery
         });
     } catch (error) {
-        return res.status(500).json({ error: "Unable to create reset link." });
+        console.error("Unable to send reset email:", error.message);
+        return res.status(502).json({
+            error: buildEmailDeliveryErrorMessage(error, "Unable to send reset email.")
+        });
     }
 });
 
