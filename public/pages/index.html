@@ -23,6 +23,8 @@
                 <div class="account-actions">
                     <a id="registerButton" class="btn btn-secondary" href="./registration.html">Register</a>
                     <a id="loginButton" class="btn btn-secondary" href="./login.html">Login</a>
+                    <a id="profileButton" class="btn btn-secondary hidden" href="./profile.html">Profile</a>
+                    <a id="pastActivityButton" class="btn btn-secondary hidden" href="./past-activity.html">Past Activity</a>
                     <button id="logoutButton" class="btn btn-primary hidden" type="button">Logout</button>
                 </div>
             </div>
@@ -37,6 +39,15 @@
         <section id="addHabitForm" class="panel hidden">
             <input id="habitName" placeholder="Habit name" maxlength="120">
             <input id="habitDescription" placeholder="Description (optional)" maxlength="240">
+            <div class="input-stack">
+                <select id="habitCategoryPreset" aria-label="Choose a preset category">
+                    <option value="">Choose a preset category (optional)</option>
+                </select>
+                <input id="habitCategory" placeholder="Or enter a custom category (optional)" maxlength="60">
+            </div>
+            <select id="habitIcon" aria-label="Choose a habit icon">
+                <option value="">Choose an icon (optional)</option>
+            </select>
             <button class="btn btn-primary" onclick="addHabit()">Add Habit</button>
         </section>
 
@@ -48,10 +59,136 @@
                 <p>Track what is active, what is slipping, and what is compounding.</p>
             </div>
         </div>
+        <section id="habitControls" class="filters-panel hidden">
+            <div class="filters-panel__top">
+                <div>
+                    <h3>Search & Sort</h3>
+                    <p id="habitFilterSummary" class="filters-summary">Showing all habits.</p>
+                </div>
+                <div class="filters-panel__actions">
+                    <button id="completeAllHabits" class="btn btn-primary" type="button">Complete all today</button>
+                    <button id="clearHabitFilters" class="btn btn-secondary" type="button">Clear filters</button>
+                </div>
+            </div>
+            <div class="filters-grid">
+                <input id="habitSearch" type="search" placeholder="Search habits, descriptions, or categories">
+                <select id="habitCategoryFilter" aria-label="Filter habits by category">
+                    <option value="">All categories</option>
+                </select>
+                <label class="filter-toggle" for="favoriteOnlyFilter">
+                    <input id="favoriteOnlyFilter" type="checkbox">
+                    <span>Favorites only</span>
+                </label>
+                <select id="habitSort" aria-label="Sort habits">
+                    <option value="favorites">Favorites first</option>
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                    <option value="name-az">Name A-Z</option>
+                    <option value="name-za">Name Z-A</option>
+                    <option value="category-az">Category A-Z</option>
+                    <option value="streak-desc">Current streak</option>
+                    <option value="best-streak-desc">Best streak</option>
+                    <option value="checkins-desc">Most check-ins</option>
+                </select>
+            </div>
+            <p class="panel-note">Your filter and chart preferences save automatically.</p>
+        </section>
+        <section id="progressPanel" class="analytics-panel hidden">
+            <div class="analytics-panel__top">
+                <div>
+                    <h3>Consistency Trends</h3>
+                    <p id="chartSummaryText" class="filters-summary">See how often you are showing up over time.</p>
+                </div>
+            </div>
+            <div class="analytics-controls">
+                <select id="chartHabitFilter" aria-label="Choose a habit to chart">
+                    <option value="all">All habits</option>
+                </select>
+                <select id="chartRangeFilter" aria-label="Choose a chart time range">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                </select>
+                <select id="chartMetricFilter" aria-label="Choose a chart metric">
+                    <option value="completed">Logged habits per day</option>
+                    <option value="rate">Daily consistency rate</option>
+                    <option value="cumulative">Cumulative logged days</option>
+                </select>
+                <select id="chartTypeFilter" aria-label="Choose a chart type">
+                    <option value="line" selected>Line chart</option>
+                    <option value="bar">Bar chart</option>
+                </select>
+            </div>
+            <div id="chartSummaryCards" class="analytics-cards"></div>
+            <div class="chart-stage">
+                <div class="chart-stage__copy">
+                    <h4 id="chartTitle">Logged Habits Per Day</h4>
+                    <p id="chartDescription" class="chart-description">Track how many of your selected habits had either a full completion or a low-effort save on each day in the chosen range.</p>
+                </div>
+                <div id="chartCanvas" class="chart-canvas" role="img" aria-live="polite" aria-label="Habit consistency chart"></div>
+            </div>
+        </section>
+        <section id="suggestionsPanel" class="suggestions-panel hidden">
+            <div class="suggestions-panel__top">
+                <div>
+                    <h3>Suggested Next Steps</h3>
+                    <p class="filters-summary">Personalized ideas to strengthen your routine, plus some playful options for lower-pressure days.</p>
+                </div>
+            </div>
+            <div class="suggestions-grid">
+                <div class="suggestion-column">
+                    <div class="suggestion-column__top">
+                        <div>
+                            <h4>Based on Your Activity</h4>
+                            <p class="suggestion-column__copy">Ideas shaped by your consistency, categories, and low-effort patterns.</p>
+                        </div>
+                    </div>
+                    <div id="personalizedSuggestions" class="suggestion-list"></div>
+                </div>
+                <div class="suggestion-column">
+                    <div class="suggestion-column__top">
+                        <div>
+                            <h4>Fun, Low-Pressure Ideas</h4>
+                            <p class="suggestion-column__copy">Gentle habits that keep things light and enjoyable.</p>
+                        </div>
+                        <button id="shuffleFunSuggestions" class="btn btn-secondary" type="button">Shuffle ideas</button>
+                    </div>
+                    <div id="funSuggestions" class="suggestion-list"></div>
+                </div>
+            </div>
+        </section>
         <section id="habitList" class="habit-list hidden"></section>
         <section id="adminPanel" class="admin-panel hidden"></section>
     </main>
 
+    <div id="welcomeModal" class="welcome-modal hidden" aria-hidden="true">
+        <div id="welcomeModalBackdrop" class="welcome-modal__backdrop"></div>
+        <section class="welcome-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="welcomeModalTitle">
+            <p class="hero-kicker">Welcome to HabitTrack</p>
+            <h2 id="welcomeModalTitle">You Are Ready to Build Your First Routine</h2>
+            <p class="welcome-modal__copy">Start simple and let the app grow with you. A good first habit should feel clear, small, and easy to repeat.</p>
+            <div class="welcome-steps">
+                <article class="welcome-step">
+                    <strong>1. Add one small habit</strong>
+                    <p>Think tiny: drink water, read one page, or stretch for two minutes.</p>
+                </article>
+                <article class="welcome-step">
+                    <strong>2. Use low-effort days when needed</strong>
+                    <p>You can protect your streak without forcing a full-energy version every time.</p>
+                </article>
+                <article class="welcome-step">
+                    <strong>3. Explore charts and suggestions later</strong>
+                    <p>Once you log a few days, HabitTrack will start surfacing patterns and next-step ideas.</p>
+                </article>
+            </div>
+            <div class="welcome-modal__actions">
+                <button id="dismissWelcomeModal" class="btn btn-secondary" type="button">Maybe later</button>
+                <button id="startWelcomeModal" class="btn btn-primary" type="button">Create my first habit</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="../scripts/session-warning.js"></script>
     <script src="../scripts/app.js"></script>
 </body>
 </html>

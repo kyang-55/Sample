@@ -1,6 +1,7 @@
 const suites = [
     require("./app.unit.test"),
     require("./auth-ui.unit.test"),
+    require("./profile.unit.test"),
     require("./server.unit.test"),
     require("./verify-login.unit.test")
 ];

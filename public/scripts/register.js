@@ -130,6 +130,8 @@ registerForm.addEventListener("submit", async (event) => {
             );
         }
 
+        sessionStorage.setItem("habittrack_welcome_new_user", "true");
+
         window.location.replace(`${PAGE_BASE}/index.html`);
     } catch {
         const message = API

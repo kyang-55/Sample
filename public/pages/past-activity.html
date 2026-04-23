@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Past Activity | HabitTrack</title>
+    <script src="../scripts/local-dev-redirect.js"></script>
+    <link rel="stylesheet" href="../styles/profile.css">
+</head>
+<body class="past-activity-page">
+    <main class="profile-shell">
+        <header class="profile-hero">
+            <a class="brand-mark" href="./index.html" aria-label="HabitTrack dashboard">
+                <img class="brand-mark__icon" src="../images/logos/logo.png" alt="">
+            </a>
+
+            <div class="profile-hero__copy">
+                <p class="profile-kicker">Activity History</p>
+                <h1 id="activityHeroTitle">Habit History</h1>
+                <p id="activityHeroCopy" class="profile-subtitle">Browse retained logs and filter activity by habit.</p>
+                <div class="profile-meta">
+                    <span id="activityRetentionBadge" class="profile-badge">Window: keep 30 days</span>
+                    <span id="activityOldestBadge" class="profile-meta__item">Loading saved history...</span>
+                </div>
+            </div>
+
+            <div class="profile-actions">
+                <a class="btn btn-secondary" href="./index.html">Back to dashboard</a>
+                <a class="btn btn-secondary" href="./profile.html">Profile</a>
+            </div>
+        </header>
+
+        <p id="activityFeedback" class="profile-feedback" role="status" aria-live="polite"></p>
+
+        <section class="profile-grid">
+            <article class="profile-card profile-card--wide">
+                <div class="profile-card__header">
+                    <div>
+                        <p class="profile-card__eyebrow">Filters</p>
+                        <h2>Retention &amp; Filters</h2>
+                    </div>
+                    <p class="profile-card__copy">Set a retention window and narrow the history list by habit.</p>
+                </div>
+
+                <div class="activity-controls">
+                    <div>
+                        <label class="profile-label" for="retentionSelect">Retention window</label>
+                        <select id="retentionSelect">
+                            <option value="7_days">Keep 7 days</option>
+                            <option value="9_days">Keep 9 days</option>
+                            <option value="30_days">Keep 30 days</option>
+                            <option value="monthly">Keep current month</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="profile-label" for="activityHabitFilter">Filter by habit</label>
+                        <select id="activityHabitFilter">
+                            <option value="all">All habits</option>
+                        </select>
+                    </div>
+                </div>
+            </article>
+
+            <article class="profile-card">
+                <div class="profile-card__header">
+                    <div>
+                        <p class="profile-card__eyebrow">Summary</p>
+                        <h2>Saved Overview</h2>
+                    </div>
+                    <p class="profile-card__copy">Current totals for the activity still retained under your selected window.</p>
+                </div>
+
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <span>Total logs</span>
+                        <strong id="activityTotalEntries">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span>Completed</span>
+                        <strong id="activityFullEntries">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span>Protected days</span>
+                        <strong id="activityLowEffortEntries">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span>Habits shown</span>
+                        <strong id="activityVisibleHabits">0</strong>
+                    </div>
+                </div>
+            </article>
+
+            <article class="profile-card profile-card--wide">
+                <div class="profile-card__header">
+                    <div>
+                        <p class="profile-card__eyebrow">Timeline</p>
+                        <h2>Recent History</h2>
+                    </div>
+                    <p id="activityListCopy" class="profile-card__copy">Latest retained activity, shown newest first.</p>
+                </div>
+
+                <div id="activityList" class="activity-list"></div>
+            </article>
+        </section>
+    </main>
+
+    <script src="../scripts/session-warning.js"></script>
+    <script src="../scripts/past-activity.js"></script>
+</body>
+</html>

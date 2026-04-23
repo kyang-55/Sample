@@ -1,54 +1,75 @@
+require("dotenv").config();
+
+const fs = require("fs");
 const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 
-const db = new sqlite3.Database(path.join(__dirname, "..", "..", "habits.db"));
+const projectRoot = path.join(__dirname, "..", "..");
+const dataRoot = process.env.DATA_DIR
+    || process.env.RENDER_DISK_ROOT
+    || projectRoot;
+const databasePath = process.env.DB_PATH || path.join(dataRoot, "habits.db");
 
-function ensureColumn(tableName, columnName, definition) {
-    db.all(`PRAGMA table_info(${tableName})`, (err, rows) => {
-        if (err) {
-            console.error(`Failed to inspect ${tableName}:`, err.message);
-            return;
-        }
+fs.mkdirSync(path.dirname(databasePath), { recursive: true });
 
-        const hasColumn = rows.some((row) => row.name === columnName);
-        if (hasColumn) return;
+const db = new sqlite3.Database(databasePath);
 
-        db.run(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`, (alterErr) => {
-            if (alterErr) {
-                console.error(`Failed to add ${columnName} to ${tableName}:`, alterErr.message);
+function runAsync(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function onRun(err) {
+            if (err) {
+                reject(err);
+                return;
             }
+
+            resolve({ lastID: this.lastID, changes: this.changes });
         });
     });
 }
 
-function ensureUsersRoleColumn() {
-    ensureColumn("users", "role", "TEXT NOT NULL DEFAULT 'user'");
-
-    db.run(
-        "UPDATE users SET role = 'user' WHERE role IS NULL OR TRIM(role) = ''",
-        (err) => {
+function allAsync(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
             if (err) {
-                console.error("Failed to normalize user roles:", err.message);
+                reject(err);
+                return;
             }
-        }
-    );
+
+            resolve(rows);
+        });
+    });
 }
 
-db.serialize(() => {
-    db.run("PRAGMA foreign_keys = ON");
+async function ensureColumn(tableName, columnName, definition) {
+    const rows = await allAsync(`PRAGMA table_info(${tableName})`);
+    const hasColumn = rows.some((row) => row.name === columnName);
 
-    db.run(`
+    if (hasColumn) {
+        return;
+    }
+
+    await runAsync(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+}
+
+async function initializeDatabase() {
+    await runAsync("PRAGMA foreign_keys = ON");
+
+    await runAsync(`
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL DEFAULT 'user',
+            habit_log_retention TEXT NOT NULL DEFAULT '30_days',
+            dashboard_preferences TEXT NOT NULL DEFAULT '{}',
+            theme_preference TEXT NOT NULL DEFAULT 'light',
+            avatar_path TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
 
-    db.run(`
+    await runAsync(`
         CREATE TABLE IF NOT EXISTS sessions (
             session_token TEXT PRIMARY KEY,
             user_id INTEGER NOT NULL,
@@ -58,27 +79,32 @@ db.serialize(() => {
         )
     `);
 
-    db.run(`
+    await runAsync(`
         CREATE TABLE IF NOT EXISTS habits (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             name TEXT NOT NULL,
-            description TEXT
+            description TEXT,
+            category TEXT,
+            icon TEXT,
+            tags TEXT,
+            is_favorite INTEGER NOT NULL DEFAULT 0
         )
     `);
 
-    db.run(`
+    await runAsync(`
         CREATE TABLE IF NOT EXISTS habit_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             habit_id INTEGER NOT NULL,
             completion_date DATE NOT NULL,
+            entry_type TEXT NOT NULL DEFAULT 'full',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE,
             UNIQUE(habit_id, completion_date)
         )
     `);
 
-    db.run(`
+    await runAsync(`
         CREATE TABLE IF NOT EXISTS password_reset_tokens (
             token TEXT PRIMARY KEY,
             user_id INTEGER NOT NULL,
@@ -88,7 +114,7 @@ db.serialize(() => {
         )
     `);
 
-    db.run(`
+    await runAsync(`
         CREATE TABLE IF NOT EXISTS login_verification_codes (
             challenge_id TEXT PRIMARY KEY,
             user_id INTEGER NOT NULL,
@@ -102,13 +128,48 @@ db.serialize(() => {
         )
     `);
 
-    ensureColumn("habits", "user_id", "INTEGER");
-    ensureUsersRoleColumn();
+    await ensureColumn("users", "role", "TEXT NOT NULL DEFAULT 'user'");
+    await ensureColumn("users", "habit_log_retention", "TEXT NOT NULL DEFAULT '30_days'");
+    await ensureColumn("users", "dashboard_preferences", "TEXT NOT NULL DEFAULT '{}'");
+    await ensureColumn("users", "theme_preference", "TEXT NOT NULL DEFAULT 'light'");
+    await ensureColumn("users", "avatar_path", "TEXT");
+    await ensureColumn("habits", "user_id", "INTEGER");
+    await ensureColumn("habits", "category", "TEXT");
+    await ensureColumn("habits", "icon", "TEXT");
+    await ensureColumn("habits", "tags", "TEXT");
+    await ensureColumn("habits", "is_favorite", "INTEGER NOT NULL DEFAULT 0");
+    await ensureColumn("habit_logs", "entry_type", "TEXT NOT NULL DEFAULT 'full'");
 
-    db.run("CREATE INDEX IF NOT EXISTS idx_habits_user_id ON habits(user_id)");
-    db.run("CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)");
-    db.run("CREATE INDEX IF NOT EXISTS idx_reset_tokens_user_id ON password_reset_tokens(user_id)");
-    db.run("CREATE INDEX IF NOT EXISTS idx_login_codes_user_id ON login_verification_codes(user_id)");
+    await runAsync(
+        "UPDATE users SET role = 'user' WHERE role IS NULL OR TRIM(role) = ''"
+    );
+    await runAsync(
+        `UPDATE users
+         SET habit_log_retention = '30_days'
+         WHERE habit_log_retention IS NULL
+            OR TRIM(habit_log_retention) = ''
+            OR TRIM(LOWER(habit_log_retention)) = 'never'`
+    );
+    await runAsync(
+        "UPDATE users SET dashboard_preferences = '{}' WHERE dashboard_preferences IS NULL OR TRIM(dashboard_preferences) = ''"
+    );
+    await runAsync(
+        "UPDATE users SET theme_preference = 'light' WHERE theme_preference IS NULL OR TRIM(theme_preference) = ''"
+    );
+    await runAsync(
+        "UPDATE habit_logs SET entry_type = 'full' WHERE entry_type IS NULL OR TRIM(entry_type) = ''"
+    );
+
+    await runAsync("CREATE INDEX IF NOT EXISTS idx_habits_user_id ON habits(user_id)");
+    await runAsync("CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)");
+    await runAsync("CREATE INDEX IF NOT EXISTS idx_reset_tokens_user_id ON password_reset_tokens(user_id)");
+    await runAsync("CREATE INDEX IF NOT EXISTS idx_login_codes_user_id ON login_verification_codes(user_id)");
+    await runAsync("CREATE INDEX IF NOT EXISTS idx_habit_logs_habit_date ON habit_logs(habit_id, completion_date)");
+}
+
+db.ready = initializeDatabase().catch((error) => {
+    console.error("Failed to initialize database:", error.message);
+    throw error;
 });
 
 module.exports = db;

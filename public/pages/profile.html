@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Profile | HabitTrack</title>
+    <script src="../scripts/local-dev-redirect.js"></script>
+    <link rel="stylesheet" href="../styles/profile.css">
+</head>
+<body>
+    <main class="profile-shell">
+        <header class="profile-hero">
+            <a class="brand-mark" href="./index.html" aria-label="HabitTrack dashboard">
+                <img class="brand-mark__icon" src="../images/logos/logo.png" alt="">
+            </a>
+
+            <div class="profile-hero__copy">
+                <p class="profile-kicker">Account hub</p>
+                <h1 id="profileHeroName">Your HabitTrack Profile</h1>
+                <p id="profileHeroEmail" class="profile-subtitle">Loading your account details...</p>
+                <div class="profile-meta">
+                    <span id="profileRoleBadge" class="profile-badge">member</span>
+                    <span id="profileJoined" class="profile-meta__item">Checking joined date...</span>
+                </div>
+            </div>
+
+            <div class="profile-hero__aside">
+                <div class="profile-avatar" aria-hidden="true">
+                    <img id="profileAvatarImage" class="profile-avatar__image hidden" alt="">
+                    <span id="profileInitials" class="profile-avatar__initials">HT</span>
+                </div>
+                <div class="profile-actions">
+                    <a class="btn btn-secondary" href="./index.html">Back to dashboard</a>
+                    <a class="btn btn-secondary" href="./past-activity.html">Past activity</a>
+                    <button id="logoutButton" class="btn btn-primary" type="button">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <p id="feedback" class="profile-feedback" role="status" aria-live="polite"></p>
+
+        <section class="profile-grid">
+            <article class="profile-card">
+                <div class="profile-card__header">
+                    <div>
+                        <p class="profile-card__eyebrow">Personal details</p>
+                        <h2>Update Your Account</h2>
+                    </div>
+                    <p class="profile-card__copy">Keep your name and email current so HabitTrack reflects the right identity everywhere you sign in.</p>
+                </div>
+
+                <form id="profileForm" class="profile-form">
+                    <div class="avatar-editor">
+                        <div class="profile-avatar profile-avatar--editor" aria-hidden="true">
+                            <img id="profileAvatarEditorImage" class="profile-avatar__image hidden" alt="">
+                            <span id="profileAvatarEditorInitials" class="profile-avatar__initials">HT</span>
+                        </div>
+
+                        <div class="avatar-editor__controls">
+                            <p class="avatar-editor__title">Profile picture</p>
+                            <p class="avatar-editor__copy">Upload a photo, then drag and zoom until the square crop looks right.</p>
+                            <input id="avatarInput" name="avatar" type="file" accept="image/png,image/jpeg,image/webp" class="hidden">
+                            <div class="avatar-editor__actions">
+                                <button id="chooseAvatarButton" class="btn btn-secondary" type="button">Choose photo</button>
+                                <button id="removeAvatarButton" class="btn btn-secondary" type="button">Remove photo</button>
+                            </div>
+                            <p id="avatarHint" class="avatar-editor__hint">PNG, JPEG, or WebP up to 2 MB.</p>
+                        </div>
+                    </div>
+
+                    <label class="profile-label" for="name">Name</label>
+                    <input id="name" name="name" type="text" autocomplete="name" maxlength="80" required>
+
+                    <label class="profile-label" for="email">Email</label>
+                    <input id="email" name="email" type="email" autocomplete="email" required>
+
+                    <button id="saveProfileButton" class="btn btn-primary" type="submit">Save changes</button>
+                </form>
+            </article>
+
+            <article class="profile-card">
+                <div class="profile-card__header">
+                    <div>
+                        <p class="profile-card__eyebrow">Momentum snapshot</p>
+                        <h2>Your Progress at a Glance</h2>
+                    </div>
+                    <p id="profileInsight" class="profile-card__copy">We are pulling together your latest habit totals.</p>
+                </div>
+
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <span>Total habits</span>
+                        <strong id="totalHabits">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span>Total check-ins</span>
+                        <strong id="totalCheckIns">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span>Active days</span>
+                        <strong id="activeDays">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span>Done today</span>
+                        <strong id="completedToday">0</strong>
+                    </div>
+                </div>
+            </article>
+
+            <article class="profile-card">
+                <div class="profile-card__header">
+                    <div>
+                        <p class="profile-card__eyebrow">Appearance</p>
+                        <h2>Theme Mode</h2>
+                    </div>
+                    <p class="profile-card__copy">Switch between light and dark mode for a more comfortable nighttime view. Your preference saves automatically.</p>
+                </div>
+
+                <div class="theme-picker" role="group" aria-label="Theme mode">
+                    <button id="lightThemeButton" class="btn btn-secondary theme-toggle" type="button" aria-pressed="true" data-theme-option="light">Light mode</button>
+                    <button id="darkThemeButton" class="btn btn-secondary theme-toggle" type="button" aria-pressed="false" data-theme-option="dark">Dark mode</button>
+                </div>
+            </article>
+
+            <article class="profile-card profile-card--wide">
+                <div class="profile-card__header">
+                    <div>
+                        <p class="profile-card__eyebrow">Recent activity</p>
+                        <h2>Habit Focus List</h2>
+                    </div>
+                    <p class="profile-card__copy">Your most recently active habits show up here so you can jump back into what matters most.</p>
+                </div>
+
+                <div id="recentHabitsList" class="recent-habits"></div>
+            </article>
+
+            <article class="profile-card profile-card--wide profile-card--danger">
+                <div class="profile-card__header">
+                    <div>
+                        <p class="profile-card__eyebrow">Danger zone</p>
+                        <h2>Delete Your Account</h2>
+                    </div>
+                    <p class="profile-card__copy">This permanently removes your account, habits, check-ins, saved profile picture, and active sessions. This action cannot be undone.</p>
+                </div>
+
+                <div class="danger-zone">
+                    <label class="profile-label" for="deleteConfirmation">Type DELETE to confirm</label>
+                    <input id="deleteConfirmation" name="deleteConfirmation" type="text" autocomplete="off" spellcheck="false" placeholder="DELETE">
+                    <button id="deleteAccountButton" class="btn btn-danger" type="button" disabled>Delete account permanently</button>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <div id="avatarCropModal" class="crop-modal hidden" aria-hidden="true">
+        <div id="avatarCropBackdrop" class="crop-modal__backdrop"></div>
+        <section class="crop-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="avatarCropTitle">
+            <div class="crop-modal__header">
+                <div>
+                    <p class="profile-card__eyebrow">Avatar crop</p>
+                    <h2 id="avatarCropTitle">Adjust Your Profile Picture</h2>
+                </div>
+                <button id="closeAvatarCropButton" class="btn btn-secondary" type="button">Cancel</button>
+            </div>
+
+            <p class="crop-modal__copy">Drag the image to reposition it, then use zoom to frame the square exactly how you want.</p>
+
+            <div id="avatarCropViewport" class="cropper" aria-label="Profile picture crop area">
+                <img id="avatarCropImage" class="cropper__image" alt="Avatar crop preview">
+                <div class="cropper__overlay"></div>
+                <div class="cropper__frame"></div>
+                <div class="cropper__grid" aria-hidden="true"></div>
+            </div>
+
+            <div class="crop-controls">
+                <label class="crop-controls__label" for="avatarZoom">Zoom</label>
+                <input id="avatarZoom" class="crop-controls__slider" type="range" min="1" max="4" step="0.01" value="1">
+            </div>
+
+            <p id="avatarCropHint" class="avatar-editor__hint">Move the photo until the square preview feels right.</p>
+
+            <div class="crop-modal__actions">
+                <button id="cancelAvatarCropButton" class="btn btn-secondary" type="button">Cancel</button>
+                <button id="applyAvatarCropButton" class="btn btn-primary" type="button">Use this crop</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="../scripts/session-warning.js"></script>
+    <script src="../scripts/profile.js"></script>
+</body>
+</html>

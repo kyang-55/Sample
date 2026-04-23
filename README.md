@@ -48,11 +48,16 @@ npm start
 
 ## Environment Variables
 
+- `PORT=3000`
 - `NODE_ENV=production`
 - `APP_ORIGIN=http://localhost:3000`
 - `RESET_EMAIL_MODE=file`
 - `RESEND_API_KEY=your_resend_api_key`
 - `RESEND_FROM_EMAIL=onboarding@resend.dev`
+- `DATA_DIR=optional custom data directory`
+- `DB_PATH=optional custom sqlite file path`
+- `UPLOADS_DIR=optional custom uploads directory`
+- `RESET_OUTBOX_PATH=optional custom reset email log path`
 
 ## Real Email Delivery With Resend
 
@@ -74,3 +79,50 @@ APP_ORIGIN=http://localhost:3000
 Notes:
 - `onboarding@resend.dev` is convenient for initial testing, but sending to broader real users usually requires a verified domain in Resend.
 - If `RESET_EMAIL_MODE` stays as `file`, the app continues using the local outbox log instead of sending real email.
+
+## Deploying To Render
+
+HabitTrack can run on a Render web service.
+
+What changed to support Render:
+- The server now listens on `process.env.PORT`.
+- `APP_ORIGIN` can use `RENDER_EXTERNAL_URL` if you do not set it manually.
+- SQLite, uploaded avatars, and file-based reset logs can live in a configurable data directory instead of the repo folder.
+- A `GET /health` endpoint is available for health checks.
+
+Recommended Render setup:
+1. Create a new `Web Service`.
+2. Use:
+
+```bash
+Build Command: npm install
+Start Command: npm start
+```
+
+3. Add environment variables:
+
+```bash
+NODE_ENV=production
+APP_ORIGIN=https://your-render-service.onrender.com
+RESET_EMAIL_MODE=file
+```
+
+4. Add a persistent disk in Render if you want your SQLite data and avatars to survive redeploys/restarts.
+5. Point the service at the disk path with either:
+
+```bash
+DATA_DIR=/var/data
+```
+
+or explicit paths:
+
+```bash
+DB_PATH=/var/data/habits.db
+UPLOADS_DIR=/var/data/uploads
+RESET_OUTBOX_PATH=/var/data/tmp/reset-emails.log
+```
+
+Important:
+- Without a persistent disk, SQLite data, uploaded avatars, and file-based reset logs can be lost on redeploy or restart.
+- If you switch to `RESET_EMAIL_MODE=resend`, set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` too.
+- You can use `/health` as the Render health check path.
