@@ -46,7 +46,7 @@
                         <p class="profile-card__eyebrow">Personal details</p>
                         <h2>Update Account</h2>
                     </div>
-                    <p class="profile-card__copy">Keep your name and email current so HabitTrack reflects the right identity everywhere you sign in.</p>
+                    <p class="profile-card__copy">Keep your name current so HabitTrack reflects the right identity everywhere you sign in. Email verification and email changes now live in Firebase Auth.</p>
                 </div>
 
                 <form id="profileForm" class="profile-form">
@@ -72,7 +72,7 @@
                     <input id="name" name="name" type="text" autocomplete="name" maxlength="80" required>
 
                     <label class="profile-label" for="email">Email</label>
-                    <input id="email" name="email" type="email" autocomplete="email" required>
+                    <input id="email" name="email" type="email" autocomplete="email" readonly required>
 
                     <button id="saveProfileButton" class="btn btn-primary" type="submit">Save changes</button>
                 </form>

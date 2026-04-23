@@ -60,6 +60,7 @@ async function initializeDatabase() {
             name TEXT NOT NULL,
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
+            firebase_uid TEXT,
             role TEXT NOT NULL DEFAULT 'user',
             habit_log_retention TEXT NOT NULL DEFAULT '30_days',
             dashboard_preferences TEXT NOT NULL DEFAULT '{}',
@@ -129,6 +130,7 @@ async function initializeDatabase() {
     `);
 
     await ensureColumn("users", "role", "TEXT NOT NULL DEFAULT 'user'");
+    await ensureColumn("users", "firebase_uid", "TEXT");
     await ensureColumn("users", "habit_log_retention", "TEXT NOT NULL DEFAULT '30_days'");
     await ensureColumn("users", "dashboard_preferences", "TEXT NOT NULL DEFAULT '{}'");
     await ensureColumn("users", "theme_preference", "TEXT NOT NULL DEFAULT 'light'");
@@ -161,6 +163,7 @@ async function initializeDatabase() {
     );
 
     await runAsync("CREATE INDEX IF NOT EXISTS idx_habits_user_id ON habits(user_id)");
+    await runAsync("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_firebase_uid ON users(firebase_uid)");
     await runAsync("CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)");
     await runAsync("CREATE INDEX IF NOT EXISTS idx_reset_tokens_user_id ON password_reset_tokens(user_id)");
     await runAsync("CREATE INDEX IF NOT EXISTS idx_login_codes_user_id ON login_verification_codes(user_id)");

@@ -5,7 +5,8 @@ const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
 const express = require("express");
-const { Resend } = require("resend");
+const { cert, getApps, initializeApp } = require("firebase-admin/app");
+const { getAuth: getFirebaseAdminAuth } = require("firebase-admin/auth");
 const db = require("./db/database");
 
 const app = express();
@@ -13,22 +14,33 @@ const PORT = Number(process.env.PORT) || 3000;
 const SESSION_COOKIE = "habittrack_session";
 const SESSION_TTL_SHORT_MS = 1000 * 60 * 60 * 24;
 const SESSION_TTL_LONG_MS = 1000 * 60 * 60 * 24 * 30;
-const RESET_TOKEN_TTL_MS = 1000 * 60 * 30;
-const LOGIN_CODE_TTL_MS = 1000 * 60 * 10;
-const LOGIN_CODE_MAX_ATTEMPTS = 5;
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const PROJECT_ROOT = path.join(__dirname, "..");
 const DATA_ROOT = process.env.DATA_DIR
     || process.env.RENDER_DISK_ROOT
     || PROJECT_ROOT;
 const APP_ORIGIN = process.env.APP_ORIGIN || process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
-const RESET_EMAIL_MODE = process.env.RESET_EMAIL_MODE || "file";
-const RESET_OUTBOX_PATH = process.env.RESET_OUTBOX_PATH || path.join(DATA_ROOT, "tmp", "reset-emails.log");
 const UPLOADS_ROOT = process.env.UPLOADS_DIR || path.join(DATA_ROOT, "uploads");
 const AVATAR_UPLOAD_DIR = path.join(UPLOADS_ROOT, "avatars");
-const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+const FIREBASE_API_KEY = String(process.env.FIREBASE_API_KEY || "").trim();
+const FIREBASE_PROJECT_ID = String(process.env.FIREBASE_PROJECT_ID || "").trim();
+const FIREBASE_AUTH_DOMAIN = String(process.env.FIREBASE_AUTH_DOMAIN || "").trim()
+    || (FIREBASE_PROJECT_ID ? `${FIREBASE_PROJECT_ID}.firebaseapp.com` : "");
+const FIREBASE_CLIENT_EMAIL = String(process.env.FIREBASE_CLIENT_EMAIL || "").trim();
+const FIREBASE_PRIVATE_KEY = String(process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n");
+
+let firebaseAdminAuth = null;
+if (FIREBASE_PROJECT_ID && FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY) {
+    const appInstance = getApps()[0] || initializeApp({
+        credential: cert({
+            projectId: FIREBASE_PROJECT_ID,
+            clientEmail: FIREBASE_CLIENT_EMAIL,
+            privateKey: FIREBASE_PRIVATE_KEY
+        })
+    });
+    firebaseAdminAuth = getFirebaseAdminAuth(appInstance);
+}
+
 function isAllowedOrigin(origin) {
     if (!origin || origin === "null") {
         return true;
@@ -94,6 +106,16 @@ app.get("/pages", (req, res) => {
 
 app.get("/health", (req, res) => {
     res.json({ ok: true });
+});
+
+app.get("/auth/firebase-config", (req, res) => {
+    res.json({
+        enabled: Boolean(FIREBASE_API_KEY && FIREBASE_PROJECT_ID),
+        apiKey: FIREBASE_API_KEY || null,
+        projectId: FIREBASE_PROJECT_ID || null,
+        authDomain: FIREBASE_AUTH_DOMAIN || null,
+        appOrigin: APP_ORIGIN
+    });
 });
 
 function dbGet(sql, params = []) {
@@ -455,12 +477,89 @@ function serializeHabitRow(row) {
     };
 }
 
-function buildResetUrl(token) {
-    return new URL(`/pages/reset-password.html?token=${encodeURIComponent(token)}`, APP_ORIGIN).toString();
+function isFirebaseAuthConfigured() {
+    return Boolean(FIREBASE_API_KEY && FIREBASE_PROJECT_ID && firebaseAdminAuth);
 }
 
-function buildLoginVerifyUrl(challengeId) {
-    return new URL(`/pages/verify-login.html?challenge=${encodeURIComponent(challengeId)}`, APP_ORIGIN).toString();
+function getFirebaseClientConfig() {
+    return {
+        apiKey: FIREBASE_API_KEY,
+        projectId: FIREBASE_PROJECT_ID,
+        authDomain: FIREBASE_AUTH_DOMAIN,
+        appOrigin: APP_ORIGIN
+    };
+}
+
+async function verifyFirebaseIdToken(idToken) {
+    if (!isFirebaseAuthConfigured()) {
+        throw new Error("Firebase Authentication is not configured on the server.");
+    }
+
+    return firebaseAdminAuth.verifyIdToken(String(idToken || "").trim());
+}
+
+async function findOrCreateUserFromFirebaseIdentity(decodedToken) {
+    const firebaseUid = String(decodedToken?.uid || "").trim();
+    const email = normalizeEmail(decodedToken?.email);
+    const displayName = String(decodedToken?.name || "").trim();
+
+    if (!firebaseUid || !email) {
+        throw new Error("Firebase token is missing required identity fields.");
+    }
+
+    let user = await dbGet(
+        `SELECT id, name, email, role, firebase_uid FROM users WHERE firebase_uid = ?`,
+        [firebaseUid]
+    );
+
+    if (user) {
+        if (user.email !== email) {
+            await dbRun(
+                "UPDATE users SET email = ? WHERE id = ?",
+                [email, user.id]
+            );
+            user.email = email;
+        }
+
+        return user;
+    }
+
+    user = await dbGet(
+        `SELECT id, name, email, role, firebase_uid FROM users WHERE email = ?`,
+        [email]
+    );
+
+    if (user) {
+        await dbRun(
+            "UPDATE users SET firebase_uid = ? WHERE id = ?",
+            [firebaseUid, user.id]
+        );
+        user.firebase_uid = firebaseUid;
+        return user;
+    }
+
+    const userCountRow = await dbGet("SELECT COUNT(*) AS count FROM users");
+    const role = userCountRow?.count === 0 ? "admin" : "user";
+    const name = displayName || email.split("@")[0] || "HabitTrack User";
+    const result = await dbRun(
+        `
+            INSERT INTO users (name, email, password_hash, firebase_uid, role)
+            VALUES (?, ?, ?, ?, ?)
+        `,
+        [name, email, "firebase-auth", firebaseUid, role]
+    );
+
+    if (role === "admin") {
+        await assignLegacyHabitsToUser(result.lastID);
+    }
+
+    return {
+        id: result.lastID,
+        name,
+        email,
+        role,
+        firebase_uid: firebaseUid
+    };
 }
 
 function parseAvatarDataUrl(dataUrl) {
@@ -533,129 +632,6 @@ function saveAvatarImage(userId, avatarDataUrl) {
     const filePath = path.join(AVATAR_UPLOAD_DIR, fileName);
     fs.writeFileSync(filePath, parsed.buffer);
     return `/uploads/avatars/${fileName}`;
-}
-
-function ensureOutboxDir() {
-    fs.mkdirSync(path.dirname(RESET_OUTBOX_PATH), { recursive: true });
-}
-
-async function sendEmailWithResend({ to, subject, html, text }) {
-    if (!resend) {
-        throw new Error("RESEND_API_KEY is not configured.");
-    }
-
-    const result = await resend.emails.send({
-        from: RESEND_FROM_EMAIL,
-        to,
-        subject,
-        html,
-        text
-    });
-
-    if (result?.error) {
-        throw new Error(result.error.message || "Resend email delivery failed.");
-    }
-
-    return {
-        delivery: "resend",
-        emailId: result.data?.id || null
-    };
-}
-
-function buildEmailDeliveryErrorMessage(error, fallbackMessage) {
-    const detail = String(error?.message || "").trim();
-    if (!detail) {
-        return fallbackMessage;
-    }
-
-    return `${fallbackMessage} ${detail}`;
-}
-
-async function deliverResetEmail(email, resetUrl, expiresAt) {
-    if (RESET_EMAIL_MODE === "resend") {
-        const subject = "HabitTrack password reset";
-        const text = [
-            "Use the link below to reset your HabitTrack password.",
-            "",
-            `Reset URL: ${resetUrl}`,
-            `Expires At: ${expiresAt}`
-        ].join("\n");
-        const html = `
-            <p>Use the link below to reset your HabitTrack password.</p>
-            <p><a href="${resetUrl}">${resetUrl}</a></p>
-            <p>Expires at: ${expiresAt}</p>
-        `;
-
-        return sendEmailWithResend({
-            to: email,
-            subject,
-            html,
-            text
-        });
-    }
-
-    ensureOutboxDir();
-    const message = [
-        `=== ${new Date().toISOString()} ===`,
-        `To: ${email}`,
-        "Subject: HabitTrack password reset",
-        `Reset URL: ${resetUrl}`,
-        `Expires At: ${expiresAt}`,
-        ""
-    ].join("\n");
-
-    fs.appendFileSync(RESET_OUTBOX_PATH, `${message}\n`, "utf8");
-
-    return {
-        delivery: "file",
-        outboxPath: RESET_OUTBOX_PATH,
-        preview: resetUrl
-    };
-}
-
-async function deliverLoginCodeEmail(email, code, verifyUrl, expiresAt) {
-    if (RESET_EMAIL_MODE === "resend") {
-        const subject = "HabitTrack login verification code";
-        const text = [
-            "Use this code to finish signing in to HabitTrack.",
-            "",
-            `Verification Code: ${code}`,
-            `Verify URL: ${verifyUrl}`,
-            `Expires At: ${expiresAt}`
-        ].join("\n");
-        const html = `
-            <p>Use this code to finish signing in to HabitTrack.</p>
-            <p><strong>${code}</strong></p>
-            <p>You can also continue here: <a href="${verifyUrl}">${verifyUrl}</a></p>
-            <p>Expires at: ${expiresAt}</p>
-        `;
-
-        return sendEmailWithResend({
-            to: email,
-            subject,
-            html,
-            text
-        });
-    }
-
-    ensureOutboxDir();
-    const message = [
-        `=== ${new Date().toISOString()} ===`,
-        `To: ${email}`,
-        "Subject: HabitTrack login verification code",
-        `Verification Code: ${code}`,
-        `Verify URL: ${verifyUrl}`,
-        `Expires At: ${expiresAt}`,
-        ""
-    ].join("\n");
-
-    fs.appendFileSync(RESET_OUTBOX_PATH, `${message}\n`, "utf8");
-
-    return {
-        delivery: "file",
-        outboxPath: RESET_OUTBOX_PATH,
-        preview: verifyUrl
-    };
 }
 
 async function pruneExpiredAuthArtifacts() {
@@ -790,6 +766,7 @@ async function requireAuth(req, res, next) {
                     users.id,
                     users.name,
                     users.email,
+                    users.firebase_uid,
                     users.role,
                     users.dashboard_preferences,
                     users.theme_preference
@@ -815,6 +792,7 @@ async function requireAuth(req, res, next) {
             id: session.id,
             name: session.name,
             email: session.email,
+            firebaseUid: session.firebase_uid || null,
             role: session.role,
             dashboardPreferences: normalizeDashboardPreferences(session.dashboard_preferences),
             themePreference: normalizeThemePreference(session.theme_preference) || "light"
@@ -1071,6 +1049,12 @@ app.patch("/profile", requireAuth, async (req, res) => {
             return res.status(400).json({ error: "A valid email is required." });
         }
 
+        if (req.user.firebaseUid && email !== req.user.email) {
+            return res.status(400).json({
+                error: "Email changes are managed by Firebase Auth and are not editable here yet."
+            });
+        }
+
         const existingUser = await dbGet(
             "SELECT id FROM users WHERE email = ? AND id != ?",
             [email, req.user.id]
@@ -1169,7 +1153,7 @@ app.delete("/profile", requireAuth, async (req, res) => {
         }
 
         const currentUser = await dbGet(
-            "SELECT avatar_path FROM users WHERE id = ?",
+            "SELECT avatar_path, firebase_uid FROM users WHERE id = ?",
             [req.user.id]
         );
 
@@ -1182,6 +1166,12 @@ app.delete("/profile", requireAuth, async (req, res) => {
         await dbRun("DELETE FROM password_reset_tokens WHERE user_id = ?", [req.user.id]);
         await dbRun("DELETE FROM login_verification_codes WHERE user_id = ?", [req.user.id]);
         await dbRun("DELETE FROM users WHERE id = ?", [req.user.id]);
+
+        if (currentUser.firebase_uid && firebaseAdminAuth) {
+            await firebaseAdminAuth.deleteUser(currentUser.firebase_uid).catch((error) => {
+                console.error("Unable to delete Firebase user:", error.message);
+            });
+        }
 
         if (currentUser.avatar_path) {
             deleteManagedAvatarFile(currentUser.avatar_path);
@@ -1267,369 +1257,49 @@ app.patch("/preferences/dashboard", requireAuth, async (req, res) => {
     }
 });
 
-async function createLoginVerificationChallenge(user, rememberMe) {
-    await dbRun("DELETE FROM login_verification_codes WHERE user_id = ?", [user.id]);
-
-    const challengeId = crypto.randomBytes(24).toString("hex");
-    const code = String(crypto.randomInt(100000, 1000000));
-    const codeHash = await hashPassword(code);
-    const expiresAt = new Date(Date.now() + LOGIN_CODE_TTL_MS).toISOString();
-
-    await dbRun(
-        `
-            INSERT INTO login_verification_codes (
-                challenge_id,
-                user_id,
-                code_hash,
-                remember_me,
-                email,
-                expires_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-        `,
-        [challengeId, user.id, codeHash, rememberMe ? 1 : 0, user.email, expiresAt]
-    );
-
-    const verifyUrl = buildLoginVerifyUrl(challengeId);
-    const delivery = await deliverLoginCodeEmail(user.email, code, verifyUrl, expiresAt);
-
-    return {
-        challengeId,
-        expiresAt,
-        delivery,
-        verifyUrl
-    };
-}
-
-app.post("/auth/register", async (req, res) => {
+app.post("/auth/firebase-session", async (req, res) => {
     try {
         await pruneExpiredAuthArtifacts();
 
-        const name = String(req.body.name || "").trim();
-        const email = normalizeEmail(req.body.email);
-        const password = String(req.body.password || "");
-        const rememberMe = Boolean(req.body.rememberMe);
+        const idToken = String(req.body?.idToken || "").trim();
+        const rememberMe = Boolean(req.body?.rememberMe);
 
-        if (!name) {
-            return res.status(400).json({ error: "Name is required." });
+        if (!idToken) {
+            return res.status(400).json({ error: "Firebase ID token is required." });
         }
 
-        if (!email || !email.includes("@")) {
-            return res.status(400).json({ error: "A valid email is required." });
-        }
-
-        const passwordError = validatePassword(password);
-        if (passwordError) {
-            return res.status(400).json({ error: passwordError });
-        }
-
-        const existingUser = await dbGet("SELECT id FROM users WHERE email = ?", [email]);
-        if (existingUser) {
-            return res.status(409).json({ error: "An account with that email already exists." });
-        }
-
-        const userCountRow = await dbGet("SELECT COUNT(*) AS count FROM users");
-        const role = userCountRow?.count === 0 ? "admin" : "user";
-        const passwordHash = await hashPassword(password);
-        const result = await dbRun(
-            `
-                INSERT INTO users (name, email, password_hash, role)
-                VALUES (?, ?, ?, ?)
-            `,
-            [name, email, passwordHash, role]
-        );
-
-        let claimedHabits = 0;
-        if (role === "admin") {
-            claimedHabits = await assignLegacyHabitsToUser(result.lastID);
-        }
-
-        await replaceSession(res, result.lastID, rememberMe);
-
-        return res.status(201).json({
-            message: "Account created.",
-            user: {
-                id: result.lastID,
-                name,
-                email,
-                role
-            },
-            migration: {
-                claimedHabits
-            }
-        });
-    } catch (error) {
-        return res.status(500).json({ error: "Unable to register user." });
-    }
-});
-
-app.post("/auth/login", async (req, res) => {
-    try {
-        await pruneExpiredAuthArtifacts();
-
-        const email = normalizeEmail(req.body.email);
-        const password = String(req.body.password || "");
-        const rememberMe = Boolean(req.body.rememberMe);
-
-        if (!email || !password) {
-            return res.status(400).json({ error: "Email and password are required." });
-        }
-
-        const user = await dbGet(
-            `
-                SELECT id, name, email, password_hash, role
-                FROM users
-                WHERE email = ?
-            `,
-            [email]
-        );
-
-        if (!user) {
-            return res.status(401).json({ error: "Invalid email or password." });
-        }
-
-        const isValid = await verifyPassword(password, user.password_hash);
-        if (!isValid) {
-            return res.status(401).json({ error: "Invalid email or password." });
-        }
-
-        let challenge;
-        try {
-            challenge = await createLoginVerificationChallenge(user, rememberMe);
-        } catch (error) {
-            console.error("Unable to send login verification email:", error.message);
-            return res.status(502).json({
-                error: buildEmailDeliveryErrorMessage(
-                    error,
-                    "Your password was accepted, but we could not send the verification email."
-                )
+        if (!isFirebaseAuthConfigured()) {
+            return res.status(503).json({
+                error: "Firebase Authentication is not configured on the server yet."
             });
         }
 
-        return res.json({
-            message: "Verification code sent.",
-            requiresTwoStep: true,
-            challengeId: challenge.challengeId,
-            email: user.email,
-            expiresAt: challenge.expiresAt,
-            delivery: challenge.delivery
-        });
-    } catch (error) {
-        console.error("Unable to log in:", error.message);
-        return res.status(500).json({ error: "Unable to log in." });
-    }
-});
-
-app.post("/auth/verify-login-code", async (req, res) => {
-    try {
-        await pruneExpiredAuthArtifacts();
-
-        const challengeId = String(req.body.challengeId || "").trim();
-        const code = String(req.body.code || "").trim();
-
-        if (!challengeId || !code) {
-            return res.status(400).json({ error: "Challenge and code are required." });
+        const decodedToken = await verifyFirebaseIdToken(idToken);
+        if (!decodedToken?.email) {
+            return res.status(400).json({ error: "Firebase account is missing an email address." });
         }
 
-        const challenge = await dbGet(
-            `
-                SELECT challenge_id, user_id, code_hash, remember_me, email, expires_at, attempt_count
-                FROM login_verification_codes
-                WHERE challenge_id = ?
-            `,
-            [challengeId]
-        );
-
-        if (!challenge) {
-            return res.status(400).json({ error: "Verification challenge is invalid." });
+        if (!decodedToken.email_verified) {
+            return res.status(403).json({
+                error: "Verify your email address before signing in to HabitTrack."
+            });
         }
 
-        if (new Date(challenge.expires_at).getTime() <= Date.now()) {
-            await dbRun("DELETE FROM login_verification_codes WHERE challenge_id = ?", [challengeId]);
-            return res.status(400).json({ error: "Verification code has expired." });
-        }
-
-        if (challenge.attempt_count >= LOGIN_CODE_MAX_ATTEMPTS) {
-            await dbRun("DELETE FROM login_verification_codes WHERE challenge_id = ?", [challengeId]);
-            return res.status(400).json({ error: "Too many attempts. Please log in again." });
-        }
-
-        const isValid = await verifyPassword(code, challenge.code_hash);
-
-        if (!isValid) {
-            await dbRun(
-                `
-                    UPDATE login_verification_codes
-                    SET attempt_count = attempt_count + 1
-                    WHERE challenge_id = ?
-                `,
-                [challengeId]
-            );
-
-            return res.status(401).json({ error: "Verification code is incorrect." });
-        }
-
-        await dbRun("DELETE FROM login_verification_codes WHERE challenge_id = ?", [challengeId]);
-        await replaceSession(res, challenge.user_id, Boolean(challenge.remember_me));
-
-        const user = await dbGet(
-            "SELECT id, name, email, role FROM users WHERE id = ?",
-            [challenge.user_id]
-        );
+        const user = await findOrCreateUserFromFirebaseIdentity(decodedToken);
+        await replaceSession(res, user.id, rememberMe);
 
         return res.json({
             message: "Logged in successfully.",
-            user
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
         });
     } catch (error) {
-        return res.status(500).json({ error: "Unable to verify login code." });
-    }
-});
-
-app.post("/auth/resend-login-code", async (req, res) => {
-    try {
-        await pruneExpiredAuthArtifacts();
-
-        const challengeId = String(req.body.challengeId || "").trim();
-        if (!challengeId) {
-            return res.status(400).json({ error: "Challenge is required." });
-        }
-
-        const existingChallenge = await dbGet(
-            `
-                SELECT challenge_id, user_id, remember_me
-                FROM login_verification_codes
-                WHERE challenge_id = ?
-            `,
-            [challengeId]
-        );
-
-        if (!existingChallenge) {
-            return res.status(400).json({ error: "Verification challenge is invalid." });
-        }
-
-        const user = await dbGet("SELECT id, email FROM users WHERE id = ?", [existingChallenge.user_id]);
-        if (!user) {
-            await dbRun("DELETE FROM login_verification_codes WHERE challenge_id = ?", [challengeId]);
-            return res.status(400).json({ error: "User no longer exists." });
-        }
-
-        let challenge;
-        try {
-            challenge = await createLoginVerificationChallenge(user, Boolean(existingChallenge.remember_me));
-        } catch (error) {
-            console.error("Unable to resend login verification email:", error.message);
-            return res.status(502).json({
-                error: buildEmailDeliveryErrorMessage(
-                    error,
-                    "We could not send a new verification email."
-                )
-            });
-        }
-
-        return res.json({
-            message: "A new verification code was sent.",
-            challengeId: challenge.challengeId,
-            email: user.email,
-            expiresAt: challenge.expiresAt,
-            delivery: challenge.delivery
-        });
-    } catch (error) {
-        console.error("Unable to resend verification code:", error.message);
-        return res.status(500).json({ error: "Unable to resend verification code." });
-    }
-});
-
-app.post("/auth/request-password-reset", async (req, res) => {
-    try {
-        await pruneExpiredAuthArtifacts();
-
-        const email = normalizeEmail(req.body.email);
-
-        if (!email || !email.includes("@")) {
-            return res.status(400).json({ error: "A valid email is required." });
-        }
-
-        const user = await dbGet("SELECT id FROM users WHERE email = ?", [email]);
-
-        if (!user) {
-            return res.json({
-                message: "If that email exists, a password reset email has been sent."
-            });
-        }
-
-        await dbRun("DELETE FROM password_reset_tokens WHERE user_id = ?", [user.id]);
-
-        const token = crypto.randomBytes(24).toString("hex");
-        const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS).toISOString();
-
-        await dbRun(
-            `
-                INSERT INTO password_reset_tokens (token, user_id, expires_at)
-                VALUES (?, ?, ?)
-            `,
-            [token, user.id, expiresAt]
-        );
-
-        const resetUrl = buildResetUrl(token);
-        const delivery = await deliverResetEmail(email, resetUrl, expiresAt);
-
-        return res.json({
-            message: "If that email exists, a password reset email has been sent.",
-            resetUrl: delivery.preview,
-            expiresAt,
-            delivery
-        });
-    } catch (error) {
-        console.error("Unable to send reset email:", error.message);
-        return res.status(502).json({
-            error: buildEmailDeliveryErrorMessage(error, "Unable to send reset email.")
-        });
-    }
-});
-
-app.post("/auth/reset-password", async (req, res) => {
-    try {
-        await pruneExpiredAuthArtifacts();
-
-        const token = String(req.body.token || "").trim();
-        const password = String(req.body.password || "");
-
-        if (!token) {
-            return res.status(400).json({ error: "Reset token is required." });
-        }
-
-        const passwordError = validatePassword(password);
-        if (passwordError) {
-            return res.status(400).json({ error: passwordError });
-        }
-
-        const resetToken = await dbGet(
-            `
-                SELECT token, user_id, expires_at
-                FROM password_reset_tokens
-                WHERE token = ?
-            `,
-            [token]
-        );
-
-        if (!resetToken) {
-            return res.status(400).json({ error: "Reset token is invalid." });
-        }
-
-        if (new Date(resetToken.expires_at).getTime() <= Date.now()) {
-            await dbRun("DELETE FROM password_reset_tokens WHERE token = ?", [token]);
-            return res.status(400).json({ error: "Reset token has expired." });
-        }
-
-        const passwordHash = await hashPassword(password);
-        await dbRun("UPDATE users SET password_hash = ? WHERE id = ?", [passwordHash, resetToken.user_id]);
-        await dbRun("DELETE FROM password_reset_tokens WHERE user_id = ?", [resetToken.user_id]);
-        await dbRun("DELETE FROM sessions WHERE user_id = ?", [resetToken.user_id]);
-
-        return res.json({ message: "Password reset successfully." });
-    } catch (error) {
-        return res.status(500).json({ error: "Unable to reset password." });
+        console.error("Unable to create Firebase-backed session:", error.message);
+        return res.status(401).json({ error: "Unable to verify your Firebase sign-in." });
     }
 });
 

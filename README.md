@@ -37,4 +37,3 @@ git clone
 ```bash
 npm install
 npm start
-```

@@ -14,7 +14,7 @@
     <main class="auth-shell">
         <section class="auth-card">
             <h1>Welcome Back</h1>
-            <p class="auth-copy">Sign in to manage your habits, streaks, and daily check-ins. After your password is confirmed, we'll email a 6-digit verification code.</p>
+            <p class="auth-copy">Sign in to manage your habits, streaks, and daily check-ins. Firebase handles the password, verification email, and reset flow for this project.</p>
 
             <form id="loginForm" class="auth-form">
                 <label class="auth-label" for="email">Email</label>
@@ -32,12 +32,14 @@
             </form>
 
             <p id="feedback" class="auth-feedback" role="status" aria-live="polite"></p>
+            <p class="auth-switch"><button id="resendVerificationButton" class="btn btn-secondary" type="button">Resend verification email</button></p>
             <p class="auth-switch"><a href="./forgot-password.html">Forgot your password?</a></p>
             <p class="auth-switch">Need an account? <a href="./registration.html">Create one</a></p>
         </section>
     </main>
 
     <script src="../scripts/auth-ui.js"></script>
+    <script src="../scripts/firebase-auth.js"></script>
     <script src="../scripts/login.js"></script>
 </body>
 </html>
