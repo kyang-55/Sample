@@ -1,7 +1,12 @@
 {
+  "name": "habittracks-v2",
+  "private": true,
   "scripts": {
     "start": "node src/server.js",
     "test": "node tests/run-tests.js"
+  },
+  "engines": {
+    "node": ">=20.17.0"
   },
   "dependencies": {
     "cors": "^2.8.6",
