@@ -1,2 +1,7 @@
 .env
 tmp/
+node_modules/
+serviceAccountKey.json
+firebase-*.json
+*.pem
+*.key
