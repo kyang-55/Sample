@@ -12,9 +12,15 @@
         <img class="brand-mark__icon" src="../images/logos/logo.png" alt="">
     </a>
     <main class="auth-shell">
-        <section class="auth-card">
+        <section class="auth-card auth-card--login">
+            <p class="auth-kicker">HabitTrack Account</p>
             <h1>Welcome Back</h1>
-            <p class="auth-copy">Sign in to manage your habits, streaks, and daily check-ins. Firebase handles the password, verification email, and reset flow for this project.</p>
+            <p class="auth-copy">Sign in to manage your habits, streaks, and daily check-ins. Your email verification and password reset are handled through Firebase.</p>
+
+            <div class="auth-note" aria-label="Sign-in guidance">
+                <strong>Before you sign in</strong>
+                <span>If this is a brand-new account, verify your email first from the message Firebase sent you.</span>
+            </div>
 
             <form id="loginForm" class="auth-form">
                 <label class="auth-label" for="email">Email</label>
@@ -32,9 +38,12 @@
             </form>
 
             <p id="feedback" class="auth-feedback" role="status" aria-live="polite"></p>
-            <p class="auth-switch"><button id="resendVerificationButton" class="btn btn-secondary" type="button">Resend verification email</button></p>
-            <p class="auth-switch"><a href="./forgot-password.html">Forgot your password?</a></p>
-            <p class="auth-switch">Need an account? <a href="./registration.html">Create one</a></p>
+
+            <div class="auth-support">
+                <button id="resendVerificationButton" class="btn btn-secondary auth-support__button" type="button">Resend verification email</button>
+                <a class="auth-inline-link" href="./forgot-password.html">Forgot your password?</a>
+                <p class="auth-switch">Need an account? <a href="./registration.html">Create one</a></p>
+            </div>
         </section>
     </main>
 
